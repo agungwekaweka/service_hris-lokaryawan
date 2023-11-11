@@ -13,13 +13,13 @@ class HODController extends Controller
 {
     // hod melakukan action terkait request cuti
     public function actionRequestCuti(Request $request) {  
-        $id = $request->id;
+        $idCutiTrn = $request->id_cuti_trn;
         $status = $request->status;
         $note = $request->note;
-        $reff = $request->reff;
+        $idKaryawanApprove = $request->id_karyawan_approve;
         try {
             $tglApprove = Carbon::now()->format('Y-m-d H:i:s');
-            $req = $this->updateRequestCuti($id,$status,$note,$reff,$tglApprove);
+            $req = $this->actionRequestCuti_($idCutiTrn,$status,$note,$idKaryawanApprove,$tglApprove);
             $result=response()->json([
                 'status' => 'success',
                 'message' => 'Update Action Cuti Successfuly',
@@ -108,5 +108,30 @@ class HODController extends Controller
         } catch (\Exception $ex) {
             return $ex;
         }
+    }
+
+    // -----------------------------------------------------------------------------
+    private function actionRequestCuti_($idCutiTrn,$status,$note,$idKaryawanApprove,$tglApprove)
+    {
+        // update cuti_approve_history
+        $c_cutiController = new CutiController();
+        $result_['update_actionCuti'] = $c_cutiController->updateApproveHistory($idCutiTrn,$status,$note,$idKaryawanApprove,$tglApprove);
+        
+        // jika aprove ditolak langsung update master cuti TRN
+        if($status=='2')
+        {
+           
+        }
+        else
+        {
+             // cek apakah masih ada history approve yg belum di setujui
+             $c_cutiController =new CutiController();
+             $result_['get_approve_history'] = $c_cutiController->getApproveHistory($status,$idCutiTrn);
+             dd($result_);
+             $c_cutiController = new CutiController();
+             $result_['update_actionCuti'] = $c_cutiController->updateActionCutiTrn($id,$status,$note,$idKaryawanApprove,$tglApprove);
+        }
+       
+        return $result_;
     }
 }

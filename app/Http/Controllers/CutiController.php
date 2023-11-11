@@ -6,14 +6,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\CutiMst;
 use App\Models\CutiTrn;
+use App\Models\CutiApproveHistory;
+use Carbon\Carbon;
+use DateTime;
 
 
 class CutiController extends Controller
 {
+    // insert
     // menambahkan data cuti karyawan ke table master
-    public function insertCutiMst($idCuti_, $tahun_,$idKaryawan_,$tipeCuti_,$cuti_,$jml_,$masaBerlaku_)
+    public function insertCutiMst($idMst_,$idCuti_, $tahun_,$idKaryawan_,$tipeCuti_,$cuti_,$jml_,$masaBerlaku_,$tglBerlaku_)
     {
         // declare variable
+        $idMst = $idMst_;
         $idCuti = $idCuti_;
         $tahun = $tahun_;
         $idKaryawan = $idKaryawan_;
@@ -21,13 +26,14 @@ class CutiController extends Controller
         $cuti = $cuti_;
         $jml = $jml_;
         $masaBerlaku = $masaBerlaku_;
+        $tglBerlaku = $tglBerlaku_;
 
         try {
             // cek data
             $dt = DB::table('cuti_mst')
             ->select('id_karyawan')
             ->where('id_karyawan',$idKaryawan)
-            ->where('tahun',$tahun)
+            ->where('is_dell','1')
             ->where('id_cuti',$idCuti);
             if($dt->exists())
             {
@@ -36,7 +42,13 @@ class CutiController extends Controller
             }
             else
             {
+                    // menambahkan toleransi masa berlaku cuti
+                    // $toleransiIntervalCuti = $this->getToleransiMasterCuti();
+                    $carbonFormatDate = new Carbon($tglBerlaku.' 00:00:00');
+                    $tglExpied = $carbonFormatDate->addMonths($masaBerlaku);
+
                     $data = new CutiMst();
+                    $data->id_cuti_mst = $idMst;
                     $data->id_cuti = $idCuti;
                     $data->tahun = $tahun; 
                     $data->id_karyawan = $idKaryawan; 
@@ -45,8 +57,8 @@ class CutiController extends Controller
                     $data->jml_cuti = $jml; 
                     $data->sisa_cuti = $jml; 
                     $data->masa_berlaku = $masaBerlaku;
-                    $data->date_start = $tahun.'-01-01';
-                    $data->date_end = $tahun.'-12-31';
+                    $data->date_start = $tglBerlaku;
+                    $data->date_end = $tglExpied;
                     $data->is_dell = '1';
                     $data->save();
             }
@@ -58,9 +70,11 @@ class CutiController extends Controller
     }
 
     // menambahkan data request cuti
-    public function insetCutiTrn($idCuti_, $idPeriode_,$tahun_,$idKaryawan_,$tipeCuti_,$cuti_,$tanggal_,$totalCuti_,$keterangan_,$tglPengajuan_,$status_,$note_,$reff1_,$reff2_,$reff3_)
+    public function insetCutiTrn($idCutiMst_,$idCutiTrn_,$idCuti_, $idPeriode_,$tahun_,$idKaryawan_,$tipeCuti_,$cuti_,$tanggal_,$totalCuti_,$keterangan_,$tglPengajuan_,$status_)
     {
         // declare variable
+        $idCutiMst = $idCutiMst_;
+        $idCutiTrn = $idCutiTrn_;
         $idCuti = $idCuti_;
         $idPeriode = $idPeriode_;
         $tahun = $tahun_;
@@ -72,11 +86,7 @@ class CutiController extends Controller
         $keterangan = $keterangan_;
         $tglPengajuan = $tglPengajuan_;
         $status = $status_;
-        $note = $note_;
-        $reff1 = $reff1_;
-        $reff2 = $reff2_;
-        $reff3 = $reff3_;
-
+     
         try {
                // cek data
                $dt = DB::table('cuti_trn')
@@ -92,8 +102,9 @@ class CutiController extends Controller
                }
                else
                {
-              
                     $data = new CutiTrn();
+                    $data->id_cuti_mst = $idCutiMst;
+                    $data->id_cuti_trn = $idCutiTrn;
                     $data->id_cuti = $idCuti;
                     $data->id_periode = $idPeriode; 
                     $data->tahun = $tahun; 
@@ -105,10 +116,6 @@ class CutiController extends Controller
                     $data->keterangan = $keterangan; 
                     $data->tgl_pengajuan = $tglPengajuan; 
                     $data->status = $status; 
-                    $data->note = $note; 
-                    $data->reff_1 = $reff1; 
-                    $data->reff_2 = $reff2; 
-                    $data->reff_3 = $reff3;
                     $data->is_dell = '1';
                     $data->save();
                }
@@ -118,6 +125,35 @@ class CutiController extends Controller
             return $ex;
         }
     }
+
+    // menambahkan history approve
+    public function insertCutiApproveHistory($idCutiTrn_, $status_, $telephone_, $idKaryawanApprove_, $tglApprove_, $note_)
+    {
+        // declare variable
+       $idCutiTrn = $idCutiTrn_;
+       $status = $status_;
+       $telephone = $telephone_;
+       $idKaryawanApprove = $idKaryawanApprove_;
+       $tglApprove = $tglApprove_;
+       $note = $note_;
+
+        try {
+            // cek data
+            $data = new CutiApproveHistory();
+            $data->id_cuti_trn = $idCutiTrn; 
+            $data->status = $status; 
+            $data->telephone = $telephone; 
+            $data->id_karyawan_approve = $idKaryawanApprove; 
+            $data->tgl_approve = $tglApprove; 
+            $data->note = $note; 
+            $data->save();
+            
+            return 'data berhasil ditambahkan';
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+    // end -- insert
 
     public function updateActionCutiTrn($id_,$status_,$note_,$reff_,$tglApprove_)
     {
@@ -136,7 +172,6 @@ class CutiController extends Controller
             if($dt->exists())
             {
                 $data = $dt->first();
-       
                 // status 0=pending, 1=acccept/setuju, 2=reject
                 if($status =='1')
                 {
@@ -184,6 +219,25 @@ class CutiController extends Controller
             }
 
             return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    public function updateApproveHistory($idCutiTrn,$status,$note,$idKaryawanApprove,$tglApprove)
+    {
+        try
+        {
+            DB::table('cuti_approve_history')
+            ->where('id_cuti_trn','=',$idCutiTrn)
+            ->where('id_karyawan_approve',$idKaryawanApprove)
+            ->update([
+                'status' => $status,
+                'tgl_approve' => $tglApprove,
+                'note'=>$note,
+            ]);
+
+            return 'Update Approve History Cuti Successfuly';
         } catch (\Exception $ex) {
             return $ex;
         }
@@ -255,7 +309,7 @@ class CutiController extends Controller
                 DB::table('cuti_mst')
                 ->where('id_karyawan','=',$idKaryawan)
                 ->update([
-                    'is_dell'=>'1'
+                    'is_dell'=>'0'
                 ]);
             }
             else
@@ -269,12 +323,113 @@ class CutiController extends Controller
         }
     }
 
+    // mendisable cuti trn yg masa berlakunya sudah jatuh tempo
+    public function disableCutiTrnValidatePeriodeExpied()
+    {
+        try
+        {
+            $tahun = Carbon::yesterday()->format('Y');
+            $bulan = Carbon::yesterday()->format('m');
+            $day = "01";
+            $dateStartMonth = date($tahun.'-'.$bulan.'-'.$day);
+            $yesterday = Carbon::yesterday();
+
+            DB::table('cuti_mst')
+            ->where('tahun',$tahun)
+            ->whereBetween('date_end', array($dateStartMonth." 00:00:00", $yesterday." 23:59:59"))
+            ->update([
+                'is_dell'=> '0'
+            ]);
+
+            $dataExpied= DB::table('cuti_mst')
+            ->select('users.departemen','users.name','cuti_mst.id_karyawan')
+            ->join('users','users.id_karyawan','cuti_mst.id_karyawan')
+            ->whereBetween('cuti_mst.date_end', array($dateStartMonth." 00:00:00", $yesterday." 23:59:59"))
+            ->where('cuti_mst.updated_at','like', '%'. Carbon::now()->format('Y-m-d').'%')
+            ->where('cuti_mst.is_dell','0')
+            ->get();
+            
+            $result_['callback'] ='disable Master Cuti validated period expied success';
+            $result_['data']=json_encode($dataExpied);
+
+            return $result_;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    // public function disableCutiTrn($idKaryawan)
+    // {
+    //     try {
+    //         // cek data
+    //         $dt = DB::table('cuti_trn')
+    //         ->select('id_karyawan')
+    //         ->where('id_karyawan',$idKaryawan);
+    //         if($dt->exists())
+    //         {
+    //             DB::table('cuti_trn')
+    //             ->where('id_karyawan','=',$idKaryawan)
+    //             ->update([
+    //                 'is_dell'=>'0'
+    //             ]);
+    //         }
+    //         else
+    //         {
+    //             return 'data tidak ditemukan';
+    //         }
+
+    //         return 'success';
+    //     } catch (\Exception $ex) {
+    //         return $ex;
+    //     }
+    // }
+
+    // mengambil master cuti tahunan
     public function getTypeMasterCuti()
     {
         $data = DB::table('master_cuti')
         ->select('id_cuti','tipe_cuti','cuti','jml_hari','masa_berlaku')
+        ->where('tipe_cuti','CT')
         ->where('is_dell','1')
         ->get();
+        return $data;
+    }
+
+    // mengambil master toleransi cuti
+    // public function getToleransiMasterCuti()
+    // {
+    //     $toleransi_ = DB::table('cuti_validity_period')
+    //     ->select('toleransi_masa_berlaku')
+    //     ->where('id','1')
+    //     ->first();
+    //     $data = $toleransi_->toleransi_masa_berlaku;
+    //     return $data;
+    // }
+
+    // mengambil data history approve yg belum di setujui
+    public function getApproveHistory($typeHistory_,$idCutiTrn_)
+    {
+        // 0= pending, 1=approve, 2=reject, else all data
+        $typeHistory = $typeHistory_;
+        $idCutiTrn = $idCutiTrn_;
+
+        $data_ = DB::table('cuti_approve_history')
+        ->select('id_cuti_trn','status','telephone','id_karyawan_approve','tgl_approve','note')
+        ->where('id_cuti_trn',$idCutiTrn);
+        if($data_->exists())
+        {
+            // get pending
+            if($typeHistory!==null)
+            {
+                $data_->where('status',$typeHistory);
+            }
+            $data = $data_->get();
+        }
+        else
+        {
+            $data='Karyawan Tidak Mempunyai Hisotry Approve';
+        }
+
         return $data;
     }
 
@@ -287,7 +442,7 @@ class CutiController extends Controller
         try
         {
             $data_ = DB::table('cuti_mst')
-            ->select('id_cuti','tahun','id_karyawan','tipe_cuti','cuti','sisa_cuti','date_start','date_end')
+            ->select('id_cuti_mst','id_cuti','tahun','id_karyawan','tipe_cuti','cuti','sisa_cuti','date_start','date_end')
             ->where('is_dell','1')
             ->where('id_karyawan',$idKaryawan)
             ->where('tahun',$tahun)
@@ -295,7 +450,7 @@ class CutiController extends Controller
             ->orderBy('id_cuti','asc');
             if($data_->exists())
             {
-                $result = $data_->get();
+                $result = $data_->first();
             }
             else
             {
@@ -315,7 +470,7 @@ class CutiController extends Controller
         $typeApprove = $typeApprove_;
         $roleApprove = $roleApprove_;
         try
-        {
+        {            
             // data user login
             $c_users = new UsersController();
             $dtUsers = $c_users->getData($idKaryawan);
@@ -402,6 +557,5 @@ class CutiController extends Controller
             return $ex;
         }
     }
-
 
 }

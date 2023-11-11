@@ -10,20 +10,23 @@ class UsersController extends Controller
 {
     // menambahkan data user ke table master
     // -> jika karyawan belum ada ditambahkan, jika karyawan sudah ada di update, jika karyawan nonn aktif di hapus
-    public function insertUser($idDepartemen_,$departemen_, $idSubDepartemen_,$subDepartemen_, $grade_, $name_, $idKaryawan_, $nik_, $password_, $isDell_)
+    public function insertUser($idDepartemen_,$departemen_, $idSubDepartemen_,$subDepartemen_,$idGrade_, $grade_, $name_,$noTelephone_, $idKaryawan_, $nik_, $password_, $isDell_,$doj_,$dob_)
     {
         // declare variable
         $idDepartemen = $idDepartemen_;
         $departemen = $departemen_;
         $idSubDepartemen = $idSubDepartemen_;
         $subDepartemen = $subDepartemen_;
+        $idGrade = $idGrade_;
         $grade = $grade_;
         $name = $name_;
+        $noTelephone =  $noTelephone_;
         $idKaryawan = $idKaryawan_;
         $nik = $nik_;
         $password = $password_;
+        $doj = $doj_;
+        $dob = $dob_;
         $isDell = $isDell_;
-
         try {
             // cek data
             $dt = DB::table('users')
@@ -36,21 +39,21 @@ class UsersController extends Controller
                 // data disable (delete) 2
                 if($isDell=='1')
                 {
-                    $req = $this->update($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen, $grade, $name, $idKaryawan, $nik, $password);
+                    $req['update_users'] = $this->update($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen,$idGrade, $grade, $name,$noTelephone, $idKaryawan, $nik, $password,$doj,$dob);
                 }
                 else
                 {
-                    $req = $this->delete();
+                    $req['delete_users'] = $this->delete();
                 }
             }
             else
             {
                 // data belum ada
                 // insert
-                $req = $this->insert($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen, $grade, $name, $idKaryawan, $nik, $password);
+                $req['insert_users'] = $this->insert($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen,$idGrade, $grade, $name,$noTelephone, $idKaryawan, $nik, $password,$doj,$dob);
             }
 
-            return 'data berhasil ditambahkan';
+            return $req;
         } catch (\Exception $ex) {
             return $ex;
         }
@@ -75,9 +78,11 @@ class UsersController extends Controller
             'users.no_telephone',
             'users.id_karyawan',
             'users.nik',
+            'users.doj',
+            'users.dob',
             'users.is_dell')
             ->where('users.id_karyawan',$idKaryawan)
-            ->join('grade','grade.id_grade','users.id_grade')
+            // ->join('grade','grade.id_grade','users.id_grade')
             ->first();
             return $data;
         } catch (\Exception $ex) {
@@ -85,42 +90,70 @@ class UsersController extends Controller
         }
     }
 
-    private function insert($idDepartemen_,$departemen_, $idSubDepartemen_,$subDepartemen_, $grade_, $name_, $idKaryawan_, $nik_, $password_)
+    private function insert($idDepartemen_,$departemen_, $idSubDepartemen_,$subDepartemen_,$idGrade_, $grade_, $name_,$noTelephone_, $idKaryawan_, $nik_, $password_,$doj_,$dob_)
     {
-        $data = new User();
-        $data->id_departemen = $idDepartemen_;
-        $data->departemen = $departemen_;
-        $data->id_sub_departemen = $idSubDepartemen_; 
-        $data->sub_departemen = $subDepartemen_; 
-        $data->grade = $grade_; 
-        $data->name = $name_; 
-        $data->id_karyawan = $idKaryawan_; 
-        $data->nik = $nik_; 
-        $data->password = $password_; 
-        $data->is_dell = '1';
-        $data->save();
+        try
+        {
+            $data = new User();
+            $data->id_departemen = $idDepartemen_;
+            $data->departemen = $departemen_;
+            $data->id_sub_departemen = $idSubDepartemen_; 
+            $data->sub_departemen = $subDepartemen_; 
+            $data->id_grade = $idGrade_;
+            $data->grade = $grade_; 
+            $data->name = $name_; 
+            $data->no_telephone = $noTelephone_;
+            $data->id_karyawan = $idKaryawan_; 
+            $data->nik = $nik_; 
+            $data->password = $password_; 
+            $data->doj = $doj_;
+            $data->dob = $dob_;
+            $data->is_dell = '1';
+            $data->save();
+            return 'insert data users success';
+        } catch (\Exception $ex) {
+            return $ex;
+        }
     }
 
-    private function update($idDepartemen_,$idSubDepartemen_,$grade_,$name_,$idKaryawan_,$nik_,$password_)
+    private function update($idDepartemen_,$departemen_, $idSubDepartemen_,$subDepartemen_,$idGrade_, $grade_, $name_,$noTelephone_, $idKaryawan_, $nik_, $password_,$doj_,$dob_)
     {
-        DB::table('users')
-        ->where('id_karyawan','=',$idKaryawan_)
-        ->update([
-            'id_departemen'=> $idDepartemen_,
-            'id_sub_departemen'=>$idSubDepartemen_,
-            'grade' => $grade_,
-            'name' => $name_,
-            'id_karyawan'=> $idKaryawan_,
-            'nik'=> $nik_,
-            'password'=> $password_
-        ]);
+        try
+        {
+            DB::table('users')
+            ->where('id_karyawan','=',$idKaryawan_)
+            ->update([
+                'id_departemen'=> $idDepartemen_,
+                'departemen'=> $departemen_,
+                'id_sub_departemen'=>$idSubDepartemen_,
+                'sub_departemen'=>$subDepartemen_,
+                'id_grade' => $idGrade_,
+                'grade' => $grade_,
+                'name' => $name_,
+                'no_telephone'=>$noTelephone_,
+                'id_karyawan'=> $idKaryawan_,
+                'nik'=> $nik_,
+                'password'=> $password_,
+                'doj'=>$doj_,
+                'dob'=>$dob_
+            ]);
+            return 'update data users success';
+        } catch (\Exception $ex) {
+            return $ex;
+        }
     }
 
     private function delete($idKaryawan_)
     {
+        try
+        {
         DB::table('users')
         ->where('id_karyawan','=',$idKaryawan_)
         ->delete();
+        return 'delete data users success';
+        } catch (\Exception $ex) {
+            return $ex;
+        }
     }
 
     public function updateAksesApprove($idKaryawan_,$approve_,$typeApprove_)
@@ -136,7 +169,7 @@ class UsersController extends Controller
                 'approve'=> $approve,
                 'type_approve'=>$typeApprove
             ]);
-            return 'success';
+            return 'update akes approve users success';
         } catch (\Exception $ex) {
             return $ex;
         }

@@ -5,52 +5,51 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Session;
 use Carbon\Carbon;
 use DateTime;
 
 class KaryawanController extends Controller
 {
-    // public function login(Request $request) {
-    //     header('Access-Control-Allow-Origin: *');
-    //     header('Content-Type: application/json');
-    //     $username = $request->username;
-    //     $password = $request->password;
-       
-    //     try {
-    //         $dtUser = DB::table('users')
-    //             ->select('password')
-    //             ->where('id_karyawan','=',$username)
-    //             ->orderBy('id','desc');
+    public function login(Request $request) {
+        header('Access-Control-Allow-Origin: *');
+        header('Content-Type: application/json');
+        $username = $request->username;
+        $password = $request->password;
+        try {
+            $dtUser = DB::table('users')
+                ->select('password')
+                ->where('id_karyawan','=',$username)
+                ->orderBy('id','desc');
 
-    //         if ($dtUser->exists()) {
-    //             $user = $dtUser->first();
-    //             if (Crypt::decryptString($user->password) == $password) {
-    //                 $user = DB::table('users')
-    //                 ->select('id_karyawan','name')
-    //                 ->where('id_karyawan','=',$username)
-    //                 ->orderBy('id','desc')
-    //                 ->first();
+            if ($dtUser->exists()) {
+                $user = $dtUser->first();
+                if (Crypt::decryptString($user->password) == $password) {
+                    $user = DB::table('users')
+                    ->select('id_karyawan','name')
+                    ->where('id_karyawan','=',$username)
+                    ->orderBy('id','desc')
+                    ->first();
 
-    //                 $result=response()->json([
-    //                     'status' => 'success',
-    //                     'message' => 'Get Data User Successfuly',
-    //                     'user' => $user
-    //                 ]);
-    //             } else {
-    //                 $result = 'Password salah.';
-    //             }
-    //         } else {
-    //             $result = 'ID Karyawan tidak terdaftar';
-    //         }
-    //         return $result;
-    //     } catch (\Exception $ex) {
-    //         return $ex;
-    //     }
-    // }
+                    $result=response()->json([
+                        'status' => 'success',
+                        'message' => 'Get Data User Successfuly',
+                        'user' => $user
+                    ]);
+                } else {
+                    $result = 'Password salah.';
+                }
+            } else {
+                $result = 'ID Karyawan tidak terdaftar';
+            }
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
 
     // memasukkan semua data karyawan dari lokahr ke lokaryawan (master cuti & master komplemen)
-    public function insertKaryawan(Request $request) {        
+    public function insertKaryawan() {        
         try {
             // get service API
             $typeService = 'get_all_karyawan';
@@ -63,20 +62,31 @@ class KaryawanController extends Controller
                 $lstEmpActive = $data_jsonDecode->karyawanActive;
                 foreach($lstEmpActive as $v)
                 {
-                   
                     $idDepartemen = $v->id_departemen;
                     $departemen = $v->departemen;
                     $idSubDepartemen = $v->id_departemen_sub;
                     $subDepartemen = $v->sub_departemen;
+                    $idGrade = $v->id_grade;
                     $grade = $v->grade;
                     $username = $v->username;
                     $name = $v->name;
+                    $noTelephone = $v->no_hp;
                     $password = $v->password;
                     $idAbsen = $v->id_absen;
                     $isDell = $v->status;
-                    
+                    $doj = $v->doj;
+                    $dob = $v->dob;
+
+                    // cek tanggal join sudah memenuhi atau belum
+                    $toDate = Carbon::now();
+                    $fromDate = Carbon::parse($doj);
+                    $months = $toDate->diffInMonths($fromDate);
+                    if($months < 11)
+                    {
+                        continue;
+                    }
                     // insert table user
-                    $x = $this->insertUser($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen, $grade, $name, $idAbsen, $username, $password, $isDell);
+                    $result_['karyawn_active'][0] = $this->insertUser($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen,$idGrade, $grade, $name,$noTelephone, $idAbsen, $username, $password, $isDell,$doj,$dob);
               
                     $tahun = Carbon::now()->format('Y');
                     // get tipe Cuti
@@ -91,7 +101,7 @@ class KaryawanController extends Controller
                         $masaBerlaku = $v->masa_berlaku;
                      
                         // insert Master Cuti
-                        $this->insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$jmlHari,$masaBerlaku);
+                       $result_['karyawn_active'][1]= $this->insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$jmlHari,$masaBerlaku,$doj);
                     }
                     
                     // get master komplement
@@ -104,7 +114,7 @@ class KaryawanController extends Controller
                         $qty = $v->qty;
 
                         // insert Master Komplemen
-                        $this->insertKomplement($idKomplement, $tahun,$idAbsen,$tipeKomplement,$qty);
+                        $result_['karyawn_active'][2] = $this->insertKomplement($idKomplement, $tahun,$idAbsen,$tipeKomplement,$qty);
                     }     
                 }
 
@@ -118,12 +128,13 @@ class KaryawanController extends Controller
                     $password = $v->password;
                  
                     // disable Master Cuti
-                    $this->disableCuti($idAbsen);
+                    $result_['karyawn_nonActive'] = $this->disableCuti($idAbsen);
                 }
                 
                 $result=response()->json([
                     'status' => 'success',
-                    'message' => 'Insert Data Karyawan Successfuly'
+                    'message' => 'Insert Data Karyawan Successfuly',
+                    'callback' => $result_
                 ]);
             }
             else
@@ -143,33 +154,33 @@ class KaryawanController extends Controller
     public function requestCuti(Request $request) {  
         $idKaryawan = $request->id_karyawan;
         $idCuti = $request->id_cuti;
-        $tipeCuti = $request->tipeCuti;
+        $tipeCuti = $request->tipe_cuti;
         $cuti = $request->cuti;
-        $tanggal = $request->tanggal;
+        $tanggal_= $request->tanggal;
         $totalCuti = $request->total_cuti;
         $keterangan = $request->keterangan;
-
+    
         try {
             // insert cuti
             $tahun = Carbon::now()->format('Y');
             $idPeriode = '-';
-            $tglPengajuan = Carbon::now()->format('Y-m-d');
+            $tglPengajuan = Carbon::now()->format('Y-m-d h:m:s');
             // status 0 = pending HOD, 1= approve, 2=reject
             $status = '0';
+            $tanggal = json_encode($tanggal_);
             $note = '-';
-            $reff1 = '-';
-            $reff2 = '-';
-            $reff3 = '-';
-
+           
             $sisaCuti =0;
             // cek sisa cuti
             $c_cuti = new CutiController();
             $dt = $c_cuti->getCutiKaryawan($idKaryawan, $tahun,$idCuti);
-            $sisaCuti = $dt[0]->sisa_cuti;
+            $sisaCuti = $dt->sisa_cuti;
+            $idMst = $dt->id_cuti_mst;
+          
             if($sisaCuti > 0)
-            {
+            {  
                 // insert cuti
-                $req = $this->insertCutiTRN($idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status,$note,$reff1,$reff2,$reff3);
+                $req = $this->insertCutiTRN($idMst,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status);
                 $result=response()->json([
                     'status' => 'success',
                     'message' => 'Request Cuti Karyawan Successfuly',
@@ -221,7 +232,7 @@ class KaryawanController extends Controller
             $result=response()->json([
                 'status' => 'success',
                 'message' => 'Update Akses Aprove Karyawan Successfuly',
-                'data' => $req
+                'callback' => $req
             ]);
             return $result;
         } catch (\Exception $ex) {
@@ -251,24 +262,65 @@ class KaryawanController extends Controller
     }
 
     // -----------------------------------------------------------------------------
-    private function insertUser($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen, $grade, $name, $idAbsen, $username, $password, $isDell)
+    private function insertUser($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen,$idGrade, $grade, $name,$noTelephone, $idAbsen, $username, $password, $isDell,$doj,$dob)
     {
         $c_user = new UsersController();
-        $result_ = $c_user->insertUser($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen, $grade, $name, $idAbsen, $username, $password, $isDell);
+        $result_['insert_userDB'] = $c_user->insertUser($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen,$idGrade, $grade, $name,$noTelephone, $idAbsen, $username, $password,$isDell,$doj,$dob);
         return $result_;
     }
 
-    private function insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$sisaCuti,$masaBerlaku)
+    public function insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$sisaCuti,$masaBerlaku,$tglBerlaku)
     {
+        // generate ID
+        $c_generateID = new GenerateIDController();
+        $idMst = $c_generateID->getIdCutiMst($tipeCuti);
+
         $c_cuti = new CutiController();
-        $result_ = $c_cuti->insertCutiMst($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$sisaCuti,$masaBerlaku);
+        $result_['insert_masterCutiDB'] = $c_cuti->insertCutiMst($idMst,$idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$sisaCuti,$masaBerlaku,$tglBerlaku);
         return $result_;
     }
 
-    private function insertCutiTRN($idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status,$note,$reff1,$reff2,$reff3)
+    private function insertCutiTRN($idMst,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status)
     {
+        // generate ID
+        $c_generateID = new GenerateIDController();
+        $idTrn = $c_generateID->getIDCutiTrn($idCuti);
+       
+        // insert data
         $c_cuti = new CutiController();
-        $result_ = $c_cuti->insetCutiTrn($idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status,$note,$reff1,$reff2,$reff3);
+        $result_['insert_cutiDB'] = $c_cuti->insetCutiTrn($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status);
+
+        // update data master cuti
+        $c_cuti = new CutiController();
+        $result_['update_sisaCut'] = $c_cuti->updateMasterCutiKaryawan($idKaryawan,$tahun,$idCuti);
+     
+        // get list approve up Level
+        $c_grade = new GradeController();
+        $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan);
+        dd($lstApproveGradeUp);
+        if($lstApproveGradeUp!=null)
+        {
+            foreach($lstApproveGradeUp as $v)
+            {
+                // 0=pending, 1=approve, 2=reject
+                $status = '0';
+                $telephone = $v->no_telephone;
+                $idKaryawanApprove = $v->id_karyawan;
+                $tglApprove = '0000-00-00';
+                $note = '-';
+                //insert list Approve up Level
+                $c_cuti = new CutiController();
+                $result_['insert_approveHistory'] = $c_cuti->insertCutiApproveHistory($idTrn, $status, $telephone, $idKaryawanApprove, $tglApprove, $note);
+            }
+
+            // sent whatsapp message
+            $c_sentWaController = new SentWhatsappController();
+            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($telephone,$idKaryawan,$cuti,$tanggal,$note);
+        }
+        else
+        {
+            $result_['insert_approveHistory'] = 'ID Karyawan : '. $idKaryawan.' Tidak memiliki Atasan untuk Approve';
+        }
         return $result_;
     }
 
@@ -282,14 +334,14 @@ class KaryawanController extends Controller
     private function disableCuti($idAbsen)
     {
         $c_cuti = new CutiController();
-        $result_ = $c_cuti->disableCutiMst($idAbsen);
+        $result_['disable_MasterCutiDB'] = $c_cuti->disableCutiMst($idAbsen);
         return $result_;
     }
 
     private function insertKomplement($idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement)
     {
         $c_komplement = new KomplementController();
-        $result_ = $c_komplement->insertKomplemenMst($idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement);
+        $result_['insert_KomplementDB'] = $c_komplement->insertKomplemenMst($idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement);
         return $result_;
     }
     
@@ -303,13 +355,13 @@ class KaryawanController extends Controller
     private function updateAksesRoleApprove($idKaryawan,$approve,$typeApprove)
     {
         $c_users = new UsersController();
-        $result_ = $c_users->updateAksesApprove($idKaryawan,$approve,$typeApprove);
+        $result_['update_aksesApprove'] = $c_users->updateAksesApprove($idKaryawan,$approve,$typeApprove);
         return $result_;
     }
     private function insertCustomRoleApprove($idKaryawan,$typeApprove,$idApprove)
     {
         $c_roleApprove = new RoleApproveController();
-        $result_ = $c_roleApprove->insertCustomRoleApprove($idKaryawan,$typeApprove,$idApprove);
+        $result_['insert_customRoleApprove'] = $c_roleApprove->insertCustomRoleApprove($idKaryawan,$typeApprove,$idApprove);
         return $result_;
     }
     // --------------------------------------------------------------------------------------------

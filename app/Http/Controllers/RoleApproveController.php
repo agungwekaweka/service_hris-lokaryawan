@@ -51,9 +51,27 @@ class RoleApproveController extends Controller
             $data->type_approve = $typeApprove;
             $data->id_approve = $idApprove; 
             $data->save();
-            return 'data berhasil ditambahkan';
+            return 'insert role approve success';
         } catch (\Exception $ex) {
             return $ex;
         }
     }
+
+    // private function delete($idKaryawan_, $typeApprove_,$idApprove_)
+    // {
+    //     $idKaryawan = $idKaryawan_;
+    //     $typeApprove = $typeApprove_;
+    //     $idApprove = $idApprove_;
+    //     try
+    //     {
+    //         $data = new RoleApprove();
+    //         $data->id_karyawan = $idKaryawan;
+    //         $data->type_approve = $typeApprove;
+    //         $data->id_approve = $idApprove; 
+    //         $data->save();
+    //         return 'data berhasil ditambahkan';
+    //     } catch (\Exception $ex) {
+    //         return $ex;
+    //     }
+    // }
 }

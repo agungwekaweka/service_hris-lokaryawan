@@ -53,6 +53,7 @@ class GradeController extends Controller
         }        
     }
 
+    //  untuk notifikasi karyawan yg mempunyai akses aprove
     public function getKaryawanApproveByGrade($typeApprove,$roleApprove,$gradeDown,$idDepartemen,$idSubDepartemen)
     {
         try
@@ -122,6 +123,113 @@ class GradeController extends Controller
            return $lstDtUsers;
         } catch (\Exception $ex) {
             return $ex;
-        }        
+        }    
     }
+
+    // mengambil data karyawan approval di atas level grade karyawan 
+    public function getGradeLvUp($idKaryawan)
+    {
+         // data user login
+         $c_users = new UsersController();
+         $dtUsers = $c_users->getData($idKaryawan);
+         dd($dtUsers);
+         if($dtUsers !=null)
+         {
+            $idDepartemen = $dtUsers->id_departemen;
+            $idSubDepartemen = $dtUsers->id_sub_departemen;
+            $idGrade = $dtUsers->id_grade;
+            $grade = $dtUsers->grade;
+            $approveLvUp = $dtUsers->approve_level_up;
+   
+           $c_gradeController = new GradeController();
+           $dtGradeDsc = $c_gradeController->getTypeMasterGrade('desc');
+           $gradeUp = $c_gradeController->getLevelGrade($dtGradeDsc,$idGrade,$approveLvUp);
+   
+           $firstApprove=true;
+           foreach($gradeUp as $v)
+           {
+               // cek sub departemen 
+               $data = $this->cekApproveSubDept($v,$idSubDepartemen);
+               if($data->exists())
+               {
+                   $x[]=$data->first();
+                   continue;
+               }
+               // cek data di departemen
+               $data = $this->cekApproveDept($v,$idDepartemen);
+               if($data->exists())
+               {
+                   $x[]=$data->first();
+                   continue;
+               }
+   
+               // cek data di custom
+               // cek type approve = 2 (id_karyawan)
+               $data = $this->cekApproveCustom($idKaryawan,$idGrade);
+               if($data->exists())
+               {
+                   $x[]=$data->first();
+                   continue;
+               }
+               // cek type approve = 1 (id_sub_dept)
+               $data = $this->cekApproveCustom($idSubDepartemen,$idGrade);
+               if($data->exists())
+               {
+                   $x[]=$data->first();
+                   continue;
+               }
+               // cek type approve = 0 (id_dept)
+               $data = $this->cekApproveCustom($idDepartemen,$idGrade);
+               if($data->exists())
+               {
+                   $x[]=$data->first();
+                   continue;
+               }
+           }
+           return $x;
+         }
+         else
+         {
+            return null;
+         }
+    }
+
+    private function cekApproveCustom($idApprove,$idGrade)
+    {
+        $qry = DB::table('role_approve')
+        ->select('users.departemen','users.sub_departemen','users.id_karyawan','users.grade','users.name','users.no_telephone')
+        ->join('users','users.id_karyawan','role_approve.id_karyawan');
+        // ->where('users.id_grade','<>',$idGrade);
+        $qry->where('id_approve',$idApprove);
+        $qry_ = $qry;
+        return $qry_;
+    }
+
+    private function getQryUserApprove()
+    {
+        $qry = DB::table('users')
+        ->select('departemen','sub_departemen','id_karyawan','grade','name','no_telephone')
+        ->where('is_dell','1')
+        ->where('approve','1');
+        return $qry;
+    }
+
+    private function cekApproveSubDept($idGrade,$idSubDepartemen)
+    {
+        $qry = $this->getQryUserApprove();
+        $qry->where('id_grade',$idGrade);
+        $qry->where('id_sub_departemen',$idSubDepartemen);
+        $qry_ = $qry;
+        return $qry_;
+    }
+
+    private function cekApproveDept($idGrade,$idDepartemen)
+    {
+        $qry = $this->getQryUserApprove();
+        $qry->where('id_grade',$idGrade);
+        $qry->where('id_departemen',$idDepartemen);
+        $qry_ = $qry;
+        return $qry_;
+    }
+    // end------------------------
 }
