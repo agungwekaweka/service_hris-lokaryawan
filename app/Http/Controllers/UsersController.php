@@ -34,6 +34,7 @@ class UsersController extends Controller
             ->where('id_karyawan',$idKaryawan);
             if($dt->exists())
             {
+       
                 // data sudah ada
                 // data enable (update) 1
                 // data disable (delete) 2
@@ -82,7 +83,7 @@ class UsersController extends Controller
             'users.dob',
             'users.is_dell')
             ->where('users.id_karyawan',$idKaryawan)
-            // ->join('grade','grade.id_grade','users.id_grade')
+            ->join('grade','grade.id_grade','users.id_grade')
             ->first();
             return $data;
         } catch (\Exception $ex) {
@@ -118,6 +119,7 @@ class UsersController extends Controller
 
     private function update($idDepartemen_,$departemen_, $idSubDepartemen_,$subDepartemen_,$idGrade_, $grade_, $name_,$noTelephone_, $idKaryawan_, $nik_, $password_,$doj_,$dob_)
     {
+
         try
         {
             DB::table('users')

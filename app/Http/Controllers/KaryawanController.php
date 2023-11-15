@@ -11,42 +11,42 @@ use DateTime;
 
 class KaryawanController extends Controller
 {
-    public function login(Request $request) {
-        header('Access-Control-Allow-Origin: *');
-        header('Content-Type: application/json');
-        $username = $request->username;
-        $password = $request->password;
-        try {
-            $dtUser = DB::table('users')
-                ->select('password')
-                ->where('id_karyawan','=',$username)
-                ->orderBy('id','desc');
+    // public function login(Request $request) {
+    //     header('Access-Control-Allow-Origin: *');
+    //     header('Content-Type: application/json');
+    //     $username = $request->username;
+    //     $password = $request->password;
+    //     try {
+    //         $dtUser = DB::table('users')
+    //             ->select('password')
+    //             ->where('id_karyawan','=',$username)
+    //             ->orderBy('id','desc');
 
-            if ($dtUser->exists()) {
-                $user = $dtUser->first();
-                if (Crypt::decryptString($user->password) == $password) {
-                    $user = DB::table('users')
-                    ->select('id_karyawan','name')
-                    ->where('id_karyawan','=',$username)
-                    ->orderBy('id','desc')
-                    ->first();
+    //         if ($dtUser->exists()) {
+    //             $user = $dtUser->first();
+    //             if (Crypt::decryptString($user->password) == $password) {
+    //                 $user = DB::table('users')
+    //                 ->select('id_karyawan','name')
+    //                 ->where('id_karyawan','=',$username)
+    //                 ->orderBy('id','desc')
+    //                 ->first();
 
-                    $result=response()->json([
-                        'status' => 'success',
-                        'message' => 'Get Data User Successfuly',
-                        'user' => $user
-                    ]);
-                } else {
-                    $result = 'Password salah.';
-                }
-            } else {
-                $result = 'ID Karyawan tidak terdaftar';
-            }
-            return $result;
-        } catch (\Exception $ex) {
-            return $ex;
-        }
-    }
+    //                 $result=response()->json([
+    //                     'status' => 'success',
+    //                     'message' => 'Get Data User Successfuly',
+    //                     'user' => $user
+    //                 ]);
+    //             } else {
+    //                 $result = 'Password salah.';
+    //             }
+    //         } else {
+    //             $result = 'ID Karyawan tidak terdaftar';
+    //         }
+    //         return $result;
+    //     } catch (\Exception $ex) {
+    //         return $ex;
+    //     }
+    // }
 
     // memasukkan semua data karyawan dari lokahr ke lokaryawan (master cuti & master komplemen)
     public function insertKaryawan() {        
@@ -62,6 +62,7 @@ class KaryawanController extends Controller
                 $lstEmpActive = $data_jsonDecode->karyawanActive;
                 foreach($lstEmpActive as $v)
                 {
+                  
                     $idDepartemen = $v->id_departemen;
                     $departemen = $v->departemen;
                     $idSubDepartemen = $v->id_departemen_sub;
@@ -81,10 +82,12 @@ class KaryawanController extends Controller
                     $toDate = Carbon::now();
                     $fromDate = Carbon::parse($doj);
                     $months = $toDate->diffInMonths($fromDate);
-                    if($months < 11)
-                    {
-                        continue;
-                    }
+                    
+                    // if($months < 11)
+                    // {
+                    //     continue;
+                    // }
+
                     // insert table user
                     $result_['karyawn_active'][0] = $this->insertUser($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen,$idGrade, $grade, $name,$noTelephone, $idAbsen, $username, $password, $isDell,$doj,$dob);
               
@@ -297,7 +300,7 @@ class KaryawanController extends Controller
         // get list approve up Level
         $c_grade = new GradeController();
         $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan);
-        dd($lstApproveGradeUp);
+  
         if($lstApproveGradeUp!=null)
         {
             foreach($lstApproveGradeUp as $v)

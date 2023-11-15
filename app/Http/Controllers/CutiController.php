@@ -155,63 +155,39 @@ class CutiController extends Controller
     }
     // end -- insert
 
-    public function updateActionCutiTrn($id_,$status_,$note_,$reff_,$tglApprove_)
+    public function updateActionCutiTrn($idCutiTrn_,$status_,$note_)
     {
         // declare variable
-        $id = $id_;
-        $note = $note_;
+        $idCutiTrn = $idCutiTrn_;
         $status = $status_;
-        $reff = $reff_;
-        $tglApprove = $tglApprove_;
-        
+        $note = $note_;
+
         try {
             // cek data
             $dt = DB::table('cuti_trn')
             ->select('id','id_cuti','tipe_cuti','tahun','id_karyawan','cuti','tanggal','total_cuti','keterangan')
-            ->where('id',$id);
+            ->where('id_cuti_trn',$idCutiTrn);
             if($dt->exists())
             {
                 $data = $dt->first();
-                // status 0=pending, 1=acccept/setuju, 2=reject
-                if($status =='1')
-                {
-                    // accept/setuju
-                    // call service lokaHR
-                    $idCuti = $data->id_cuti;
-                    $tahun = $data->tahun;
-                    $tanggal = $data->tanggal;
-                    $tipeCuti = $data->tipe_cuti;
-                    $idKaryawan = $data->id_karyawan;
 
-                        $idPeriode = 'x';
-                        DB::table('cuti_trn')
-                        ->where('id','=',$id)
-                        ->update([
-                            'id_periode'=> $idPeriode,
-                            'note'=>$note,
-                            'status' => $status,
-                            'reff_1' => $reff,
-                            'tgl_aprove1'=> $tglApprove
-                        ]);
-                        // update table master trn sisa cuti
-                        $this->updateMasterCutiKaryawan($idKaryawan,$tahun,$idCuti);
-                   
-                        $result='Update Cuti Successfuly';
-                }
-                elseif($status=='2')
+                DB::table('cuti_trn')
+                ->where('id_cuti_trn','=',$idCutiTrn)
+                ->update([
+                    'note'=>$note,
+                    'status' => $status,
+                ]);
+                
+                if($status=='2')
                 {
-                    // request reject
                     DB::table('cuti_trn')
-                    ->where('id','=',$id)
+                    ->where('id_cuti_trn','=',$idCutiTrn)
                     ->update([
-                        'note'=>$note,
-                        'status' => $status,
-                        'reff_1' => $reff,
-                        'tgl_aprove1'=> $tglApprove
+                        'is_dell' => '0',
                     ]);
-
-                    $result='Update Cuti Successfuly';
                 }
+
+                $result = 'update Cuti Trn karyawan success';
             }
             else
             {
@@ -265,6 +241,7 @@ class CutiController extends Controller
             ->select(DB::raw("sum(total_cuti) as total"))
             ->where('id_cuti',$idCuti)
             ->where('tahun',$tahun)
+            ->where('is_dell','1')
             ->where('id_karyawan',$idKaryawan)
             ->first();
             $jmlCutiTrn=$jmlCutiTrn_->total;
@@ -412,25 +389,98 @@ class CutiController extends Controller
         // 0= pending, 1=approve, 2=reject, else all data
         $typeHistory = $typeHistory_;
         $idCutiTrn = $idCutiTrn_;
-
+      
         $data_ = DB::table('cuti_approve_history')
         ->select('id_cuti_trn','status','telephone','id_karyawan_approve','tgl_approve','note')
-        ->where('id_cuti_trn',$idCutiTrn);
+        ->where('id_cuti_trn',$idCutiTrn)
+        ->where('status',$typeHistory);
         if($data_->exists())
         {
-            // get pending
-            if($typeHistory!==null)
+            $data = $data_->get();
+        }
+        else
+        {
+            $data=null;
+        }
+        return $data;
+    }
+
+    // mengambil data cuti Trn
+    public function getCutiTrn($idCutiTrn_)
+    { 
+        $data_ = DB::table('cuti_trn')
+        ->select('cuti_trn.id_cuti_mst',
+        'cuti_trn.id_cuti_trn',
+        'users.name',
+        'users.no_telephone',
+        'cuti_trn.id_cuti',
+        'cuti_trn.id_periode',
+        'cuti_trn.tahun',
+        'cuti_trn.id_karyawan',
+        'cuti_trn.tipe_cuti',
+        'cuti_trn.cuti',
+        'cuti_trn.tanggal',
+        'cuti_trn.total_cuti',
+        'cuti_trn.keterangan',
+        'cuti_trn.tgl_pengajuan',
+        'cuti_trn.status',
+        'cuti_trn.note')
+        ->join('users','users.id_karyawan','cuti_trn.id_karyawan')
+        ->where('cuti_trn.id_cuti_trn',$idCutiTrn_);
+        if($data_->exists())
+        {
+            $data = $data_->first();
+        }
+        else
+        {
+            $data=null;
+        }
+        return $data;
+    }
+    
+    // mengambil data request cuti
+    public function getCutiRequest($idKaryawan_,$status_,$tipe_)
+    { 
+        try
+        {
+        $data_ = DB::table('cuti_trn')
+        ->select('cuti_trn.id_cuti_mst',
+        'cuti_trn.id_cuti_trn',
+        'cuti_trn.id_cuti',
+        'cuti_trn.id_periode',
+        'cuti_trn.tahun',
+        'cuti_trn.id_karyawan',
+        'cuti_trn.tipe_cuti',
+        'cuti_trn.cuti',
+        'cuti_trn.tanggal',
+        'cuti_trn.total_cuti',
+        'cuti_trn.keterangan',
+        'cuti_trn.tgl_pengajuan',
+        'cuti_trn.status',
+        'cuti_trn.note')
+        ->where('cuti_trn.id_karyawan',$idKaryawan_);
+        if($data_->exists())
+        {
+            // cek apakah get by status);
+            if($status_!=null)
             {
-                $data_->where('status',$typeHistory);
+                $data_->where('cuti_trn.status',$status_);
+            }
+            if($tipe_!=null)
+            {
+                $data_->where('cuti_trn.tipe_cuti',$tipe_);
             }
             $data = $data_->get();
         }
         else
         {
-            $data='Karyawan Tidak Mempunyai Hisotry Approve';
+            $data=null;
         }
-
         return $data;
+        }
+        catch (\Exception $ex) {
+            return $ex;
+        }
     }
 
     // megambil data sisa cuti karyawan
@@ -496,6 +546,7 @@ class CutiController extends Controller
             $data_ = DB::table('cuti_trn')
             ->select(
             'cuti_trn.id',
+            'cuti_trn.id_cuti_trn',
             'users.departemen',
             'users.sub_departemen',
             'users.grade',
@@ -552,6 +603,63 @@ class CutiController extends Controller
                 ]);
             }
 
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    public function getRequestCutiByID(Request $request)
+    {
+        $idCutiTrn = $request->id_cuti_trn;
+        try
+        {
+            $data = $this->getCutiTrn($idCutiTrn);
+            if($data !=null)
+            {
+                $result=response()->json([
+                    'status' => 'success',
+                    'message' => 'Get Data Cuti By ID Successfuly',
+                    'data' => $data
+                ]);
+            }
+            else
+            {
+                $result=response()->json([
+                    'status' => 'failed',
+                    'message' => 'Data Cuti By ID Tidak Ditemukan',
+                ]);
+            }
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    public function getRequestCuti(Request $request)
+    {
+        $idCutiTrn = $request->id_karyawan;
+        $status = $request->status;
+        $type = $request->type;
+
+        try
+        {
+            $data = $this->getCutiRequest($idCutiTrn,$status,$type);
+            if($data !=null)
+            {
+                $result=response()->json([
+                    'status' => 'success',
+                    'message' => 'Get Data Cuti Request Successfuly',
+                    'data' => $data
+                ]);
+            }
+            else
+            {
+                $result=response()->json([
+                    'status' => 'failed',
+                    'message' => 'Data Cuti Tidak Ditemukan',
+                ]);
+            }
             return $result;
         } catch (\Exception $ex) {
             return $ex;

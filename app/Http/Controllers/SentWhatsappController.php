@@ -33,4 +33,29 @@ class SentWhatsappController extends Controller
         $result_ = $c_apiGuzzle->getServiceWhatsapp($telephone,$message);
         return $result_;
     }
+
+    public function sentWhatsappApproveCutiCancel($telephone_,$idKaryawan_,$typeCuti_,$tanggalCuti_,$note_)
+    {
+        // get Data User Request
+        $c_users = new UsersController();
+        $dtUser = $c_users->getData($idKaryawan_);
+
+        $departemen = $dtUser->departemen;
+        $subDepartemen = $dtUser->sub_departemen;
+        $grade = $dtUser->grade;
+        $nama = $dtUser->name;
+        $tanggalCuti = $tanggalCuti_;
+        $note = $note_;
+
+        // declare variable
+        $telephone = $telephone_;
+        $message = "*Request Cuti Yang Anda Ajukan Di Tolak*, \n".
+        "Type Cuti : ".$typeCuti_." \n\n".
+        "*Request Tanggal Cuti* :  \n".$tanggalCuti ." \nNote : ".$note." \n\n"."https://lokaryawan.salokapark.app";
+        
+        $c_apiGuzzle = new API_Guzzle();
+        $result_ = $c_apiGuzzle->getServiceWhatsapp($telephone,$message);
+        return $result_;
+    }
+    
 }

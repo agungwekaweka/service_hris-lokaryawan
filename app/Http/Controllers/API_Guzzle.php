@@ -11,9 +11,9 @@ class API_Guzzle extends Controller
         try {
             $client = new \GuzzleHttp\Client();
             // server
-            // $request = $client->get('https://lokahr.salokapark.app/api/'.$var);
+            $request = $client->get('https://lokahr.salokapark.app/api/'.$var);
             // local
-            $request = $client->get('http://192.168.0.75:8099/api/'.$var);
+            // $request = $client->get('http://192.168.0.75:8099/api/'.$var);
             $response = $request->getBody();
             $jsonDecode = json_decode($response);
             return $jsonDecode;

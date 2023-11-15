@@ -23,9 +23,9 @@ use Illuminate\Support\Facades\Session;
 |
 */
 
-Route::controller(KaryawanController::class)->group(function () {
-    Route::post('login', 'login'); 
-});
+// Route::controller(KaryawanController::class)->group(function () {
+//     Route::post('login', 'login'); 
+// });
 
 // * jika middleware aktif memerlukan session untuk mengakses route controller
 // Route::middleware([CheckStatus::class])->group(function(){
@@ -53,6 +53,11 @@ Route::controller(KaryawanController::class)->group(function () {
     Route::controller(CutiController::class)->group(function () {
         // get data master cuti
         Route::get('get_master_cuti', 'getMasterCuti'); 
+        // get data cuti by ID
+        Route::get('get_request_cuti_ByID', 'getRequestCutiByID'); 
+        // get data request cuti
+        Route::get('get_request_cuti', 'getRequestCuti'); 
+        
     });
 
     Route::controller(KomplementController::class)->group(function () {
