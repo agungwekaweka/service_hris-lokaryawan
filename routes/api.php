@@ -34,6 +34,7 @@ use Illuminate\Support\Facades\Session;
         Route::get('insert_karyawan', 'insertKaryawan'); 
         // request cuti karyawan
         Route::post('request_cuti', 'requestCuti'); 
+        Route::post('request_cuti_khusus', 'requestCutiKhusus'); 
         // get data sisa cuti karyawan
         Route::get('get_cuti', 'getCutiKaryawan'); 
         // update akses approve
@@ -64,7 +65,6 @@ use Illuminate\Support\Facades\Session;
         // get data komplement karyawan
         Route::get('get_komplemen', 'getKomplemen'); 
     });
-
 // });
 
 // CronJob

@@ -15,7 +15,7 @@ class CutiController extends Controller
 {
     // insert
     // menambahkan data cuti karyawan ke table master
-    public function insertCutiMst($idMst_,$idCuti_, $tahun_,$idKaryawan_,$tipeCuti_,$cuti_,$jml_,$masaBerlaku_,$tglBerlaku_)
+    public function insertCutiMst($idMst_,$idCuti_, $tahun_,$idKaryawan_,$tipeCuti_,$cuti_,$jml_,$tipeMasaBerlaku_,$masaBerlaku_,$tglBerlaku_)
     {
         // declare variable
         $idMst = $idMst_;
@@ -25,14 +25,16 @@ class CutiController extends Controller
         $tipeCuti = $tipeCuti_;
         $cuti = $cuti_;
         $jml = $jml_;
+        $tipeMasaBerlaku = $tipeMasaBerlaku_;
         $masaBerlaku = $masaBerlaku_;
         $tglBerlaku = $tglBerlaku_;
-
+    
         try {
             // cek data
             $dt = DB::table('cuti_mst')
             ->select('id_karyawan')
             ->where('id_karyawan',$idKaryawan)
+            ->where('tipe_cuti','CT')
             ->where('is_dell','1')
             ->where('id_cuti',$idCuti);
             if($dt->exists())
@@ -44,9 +46,15 @@ class CutiController extends Controller
             {
                     // menambahkan toleransi masa berlaku cuti
                     // $toleransiIntervalCuti = $this->getToleransiMasterCuti();
-                    $carbonFormatDate = new Carbon($tglBerlaku.' 00:00:00');
-                    $tglExpied = $carbonFormatDate->addMonths($masaBerlaku);
-
+                    // get tglExpied
+                    $tglExpied = $this->getTglExpied($masaBerlaku,$tipeMasaBerlaku,$tglBerlaku);
+                    // jika tipe cuti khusus maka jml hari menggunakan interval tanggal
+                    if($tipeCuti=='CK')
+                    {
+                        $jml = $this->getIntervalHariFromMonth($tglBerlaku,$tglExpied);
+                    }
+               
+             
                     $data = new CutiMst();
                     $data->id_cuti_mst = $idMst;
                     $data->id_cuti = $idCuti;
@@ -56,6 +64,7 @@ class CutiController extends Controller
                     $data->cuti = $cuti; 
                     $data->jml_cuti = $jml; 
                     $data->sisa_cuti = $jml; 
+                    $data->tipe_masa_berlaku = $tipeMasaBerlaku;
                     $data->masa_berlaku = $masaBerlaku;
                     $data->date_start = $tglBerlaku;
                     $data->date_end = $tglExpied;
@@ -67,6 +76,35 @@ class CutiController extends Controller
         } catch (\Exception $ex) {
             return $ex;
         }
+    }
+    
+    private function getTglExpied($masaBerlaku,$tipeMasaBerlaku,$tglBerlaku)
+    {
+        $carbonFormatDate = new Carbon($tglBerlaku.' 00:00:00');
+        // cek tipe masa Berlaku
+        if($tipeMasaBerlaku=='year')
+        {
+            $tglExpied = $carbonFormatDate->addYears($masaBerlaku);
+        }
+        elseif($tipeMasaBerlaku=='month')
+        {
+            $tglExpied = $carbonFormatDate->addMonths($masaBerlaku);
+        }
+        elseif($tipeMasaBerlaku=='day')
+        {
+            $tglExpied = $carbonFormatDate->addDays($masaBerlaku);
+        }
+        return $tglExpied;
+    }
+
+    private function getIntervalHariFromMonth($startDate,$endDate)
+    {
+        $startDate = Carbon::parse($startDate);
+
+        $endDate = Carbon::parse($endDate);
+
+        $countDay = $startDate->diffInDays($endDate);
+        return $countDay;
     }
 
     // menambahkan data request cuti
@@ -86,7 +124,7 @@ class CutiController extends Controller
         $keterangan = $keterangan_;
         $tglPengajuan = $tglPengajuan_;
         $status = $status_;
-     
+       
         try {
                // cek data
                $dt = DB::table('cuti_trn')
@@ -94,7 +132,8 @@ class CutiController extends Controller
                ->where('id_karyawan',$idKaryawan)
                ->where('tahun',$tahun)
                ->where('id_cuti',$idCuti)
-               ->where('tanggal',$tanggal);
+               ->where('tanggal',$tanggal)
+               ->where('tipe_cuti','CT');
                if($dt->exists())
                {
                    // data sudah ada
@@ -219,10 +258,11 @@ class CutiController extends Controller
         }
     }
 
-    public function updateMasterCutiKaryawan($idKaryawan_,$tahun_,$idCuti_)
+    public function updateMasterCutiKaryawan($idKaryawan_,$idMst_,$idTrn_,$idCuti_)
     {
         $idKaryawan = $idKaryawan_;
-        $tahun = $tahun_;
+        $idMst = $idMst_;
+        $idTrn = $idTrn_;
         $idCuti = $idCuti_;
         try {
             $jmlCutiMst_ = 0;
@@ -230,26 +270,31 @@ class CutiController extends Controller
             // Get Jml Cuti Master Periode karyawan
             $jmlCutiMst_ = DB::table('cuti_mst')
             ->select('jml_cuti')
+            ->where('is_dell','1')
+            ->where('sisa_cuti','<>',0)
             ->where('id_cuti',$idCuti)
-            ->where('tahun',$tahun)
+            ->where('id_cuti_mst',$idMst)
             ->where('id_karyawan',$idKaryawan)
             ->first();
             $jmlCutiMst = $jmlCutiMst_->jml_cuti;
-            
+          
             // Get total request Cuti Trn Karyawan
             $jmlCutiTrn_ = DB::table('cuti_trn')
             ->select(DB::raw("sum(total_cuti) as total"))
-            ->where('id_cuti',$idCuti)
-            ->where('tahun',$tahun)
             ->where('is_dell','1')
+            ->where('id_cuti',$idCuti)
+            ->where('id_cuti_mst',$idMst)
             ->where('id_karyawan',$idKaryawan)
             ->first();
-            $jmlCutiTrn=$jmlCutiTrn_->total;
 
+            $jmlCutiTrn=$jmlCutiTrn_->total;
             $sisaCuti = $jmlCutiMst - $jmlCutiTrn;
+            
             DB::table('cuti_mst')
+            ->where('is_dell','1')
+            ->where('sisa_cuti','<>',0)
             ->where('id_cuti','=',$idCuti)
-            ->where('tahun','=',$tahun)
+            ->where('id_cuti_mst','=',$idMst)
             ->where('id_karyawan','=',$idKaryawan)
             ->update([
                 'sisa_cuti'=> $sisaCuti
@@ -365,10 +410,21 @@ class CutiController extends Controller
     public function getTypeMasterCuti()
     {
         $data = DB::table('master_cuti')
-        ->select('id_cuti','tipe_cuti','cuti','jml_hari','masa_berlaku')
+        ->select('id_cuti','tipe_cuti','cuti','jml_hari','tipe_masa_berlaku','masa_berlaku')
         ->where('tipe_cuti','CT')
         ->where('is_dell','1')
         ->get();
+        return $data;
+    }
+
+    // mengambil master cuti tahunan
+    public function getTypeMasterCutiByID($idCuti)
+    {
+        $data = DB::table('master_cuti')
+        ->select('id_cuti','tipe_cuti','cuti','jml_hari','tipe_masa_berlaku','masa_berlaku')
+        ->where('id_cuti',$idCuti)
+        ->where('is_dell','1')
+        ->first();
         return $data;
     }
 
@@ -412,6 +468,7 @@ class CutiController extends Controller
         ->select('cuti_trn.id_cuti_mst',
         'cuti_trn.id_cuti_trn',
         'users.name',
+        'users.nik',
         'users.no_telephone',
         'cuti_trn.id_cuti',
         'cuti_trn.id_periode',
@@ -494,19 +551,18 @@ class CutiController extends Controller
             $data_ = DB::table('cuti_mst')
             ->select('id_cuti_mst','id_cuti','tahun','id_karyawan','tipe_cuti','cuti','sisa_cuti','date_start','date_end')
             ->where('is_dell','1')
+            ->where('sisa_cuti','<>',0)
             ->where('id_karyawan',$idKaryawan)
-            ->where('tahun',$tahun)
             ->where('id_cuti','like','%'.$idCuti.'%')
-            ->orderBy('id_cuti','asc');
+            ->orderBy('id','asc');
             if($data_->exists())
             {
-                $result = $data_->first();
+                $result = $data_->get();
             }
             else
             {
                 $result = 'ID Karyawan Tidak Ditemukan';
             }
-
             return $result;
         } catch (\Exception $ex) {
             return $ex;
@@ -524,7 +580,7 @@ class CutiController extends Controller
             // data user login
             $c_users = new UsersController();
             $dtUsers = $c_users->getData($idKaryawan);
-
+         
             $idDepartemen = $dtUsers->id_departemen;
             $idSubDepartemen = $dtUsers->id_sub_departemen;
             $idGrade = $dtUsers->id_grade;
@@ -539,32 +595,77 @@ class CutiController extends Controller
 
             $gradeDown = $c_gradeController->getLevelGrade($dtGradeAsc,$idGrade,$approveLvDown);
             // $gradeUp = $c_gradeController->getLevelGrade($dtGradeDsc,$idGrade,$approveLvUp);
-
+      
             // return array
             $lstDtUsers = $c_gradeController->getKaryawanApproveByGrade($typeApprove,$roleApprove,$gradeDown,$idDepartemen,$idSubDepartemen);
-
+          
             $data_ = DB::table('cuti_trn')
             ->select(
             'cuti_trn.id',
-            'cuti_trn.id_cuti_trn',
-            'users.departemen',
-            'users.sub_departemen',
-            'users.grade',
-            'users.name',
-            'cuti_trn.id_cuti',
-            'cuti_trn.tahun',
-            'cuti_trn.id_karyawan',
-            'cuti_trn.cuti',
-            'cuti_trn.tanggal',
-            'cuti_trn.keterangan',
-            'cuti_trn.tgl_pengajuan')
-            ->join('users','users.id_karyawan','cuti_trn.id_karyawan')
+            'cuti_trn.id_cuti_trn')
             ->where('cuti_trn.status','0')
             ->whereIn('cuti_trn.id_karyawan',$lstDtUsers)
             ->orderBy('cuti_trn.tgl_pengajuan','asc');
             if($data_->exists())
             {
                 $result = $data_->get();
+              
+                $lstIDTrnOutstanding=null;
+                $countLstOutstanding=0;
+                foreach($result as $x)
+                {
+                    $idCutiTrn = $x->id_cuti_trn;
+                    
+                    // cek apakah masih ada history approve yg belum di setujui
+                    $c_cutiController =new CutiController();
+                    //  0=pending, 1=approve, 2=reject
+                    $result_ = $c_cutiController->getApproveHistory(0,$idCutiTrn);
+                 
+                    if($result_==null)
+                    {
+                    // selesai semua
+                        
+                    }
+                    else
+                    {
+                        // masih ada data yg pending
+                        if($result_[0]->id_karyawan_approve == $idKaryawan)
+                        {
+                            $lstIDTrnOutstanding[$countLstOutstanding] = $result_[0]->id_cuti_trn;
+                            $countLstOutstanding++;
+                        }
+                    }
+                }
+              
+                // cek apakah ada data
+                if($lstIDTrnOutstanding!=null)
+                {
+                    $data_ = DB::table('cuti_trn')
+                    ->select(
+                    'cuti_trn.id',
+                    'cuti_trn.id_cuti_trn',
+                    'users.departemen',
+                    'users.sub_departemen',
+                    'users.grade',
+                    'users.name',
+                    'cuti_trn.id_cuti',
+                    'cuti_trn.tahun',
+                    'cuti_trn.id_karyawan',
+                    'cuti_trn.cuti',
+                    'cuti_trn.tanggal',
+                    'cuti_trn.keterangan',
+                    'cuti_trn.tgl_pengajuan')
+                    ->join('users','users.id_karyawan','cuti_trn.id_karyawan')
+                    ->where('cuti_trn.status','0')
+                    ->whereIn('cuti_trn.id_cuti_trn',$lstIDTrnOutstanding)
+                    ->orderBy('cuti_trn.tgl_pengajuan','asc')
+                    ->get();
+                    $result = $data_;
+                }
+                else
+                {
+                    $result = 'Data Tidak Ditemukan'; 
+                }
             }
             else
             {

@@ -91,6 +91,37 @@ class UsersController extends Controller
         }
     }
 
+    public function getDataByNoHp($noTelephone_)
+    {
+        $noTelephone = $noTelephone_;
+        try
+        {
+            $data = DB::table('users')
+            ->select(
+            'users.id_departemen',
+            'users.departemen',
+            'users.id_sub_departemen',
+            'users.sub_departemen',
+            'users.id_grade',
+            'users.grade',
+            'grade.approve_level_up',
+            'grade.approve_level_down',
+            'users.name',
+            'users.no_telephone',
+            'users.id_karyawan',
+            'users.nik',
+            'users.doj',
+            'users.dob',
+            'users.is_dell')
+            ->where('users.no_telephone',$noTelephone)
+            ->join('grade','grade.id_grade','users.id_grade')
+            ->first();
+            return $data;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
     private function insert($idDepartemen_,$departemen_, $idSubDepartemen_,$subDepartemen_,$idGrade_, $grade_, $name_,$noTelephone_, $idKaryawan_, $nik_, $password_,$doj_,$dob_)
     {
         try

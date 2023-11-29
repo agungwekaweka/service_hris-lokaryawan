@@ -8,46 +8,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Carbon\Carbon;
 use DateTime;
+use App\Http\Controllers\ClassUploadImageClass;
 
 class KaryawanController extends Controller
 {
-    // public function login(Request $request) {
-    //     header('Access-Control-Allow-Origin: *');
-    //     header('Content-Type: application/json');
-    //     $username = $request->username;
-    //     $password = $request->password;
-    //     try {
-    //         $dtUser = DB::table('users')
-    //             ->select('password')
-    //             ->where('id_karyawan','=',$username)
-    //             ->orderBy('id','desc');
-
-    //         if ($dtUser->exists()) {
-    //             $user = $dtUser->first();
-    //             if (Crypt::decryptString($user->password) == $password) {
-    //                 $user = DB::table('users')
-    //                 ->select('id_karyawan','name')
-    //                 ->where('id_karyawan','=',$username)
-    //                 ->orderBy('id','desc')
-    //                 ->first();
-
-    //                 $result=response()->json([
-    //                     'status' => 'success',
-    //                     'message' => 'Get Data User Successfuly',
-    //                     'user' => $user
-    //                 ]);
-    //             } else {
-    //                 $result = 'Password salah.';
-    //             }
-    //         } else {
-    //             $result = 'ID Karyawan tidak terdaftar';
-    //         }
-    //         return $result;
-    //     } catch (\Exception $ex) {
-    //         return $ex;
-    //     }
-    // }
-
     // memasukkan semua data karyawan dari lokahr ke lokaryawan (master cuti & master komplemen)
     public function insertKaryawan() {        
         try {
@@ -55,6 +19,7 @@ class KaryawanController extends Controller
             $typeService = 'get_all_karyawan';
             $json_data = new API_Guzzle();
             $data_jsonDecode = $json_data->getServiceLokaHR($typeService);
+            // dd($data_jsonDecode);
             // cek status API
             if($data_jsonDecode->status=='success')
             {
@@ -102,9 +67,10 @@ class KaryawanController extends Controller
                         $cuti = $v->cuti;
                         $jmlHari = $v->jml_hari;
                         $masaBerlaku = $v->masa_berlaku;
+                        $tipeMasaBerlaku = $v->tipe_masa_berlaku;
                      
                         // insert Master Cuti
-                       $result_['karyawn_active'][1]= $this->insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$jmlHari,$masaBerlaku,$doj);
+                       $result_['karyawn_active'][1]= $this->insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$jmlHari,$tipeMasaBerlaku,$masaBerlaku,$doj);
                     }
                     
                     // get master komplement
@@ -159,7 +125,7 @@ class KaryawanController extends Controller
         $idCuti = $request->id_cuti;
         $tipeCuti = $request->tipe_cuti;
         $cuti = $request->cuti;
-        $tanggal_= $request->tanggal;
+        $tanggal= $request->tanggal;
         $totalCuti = $request->total_cuti;
         $keterangan = $request->keterangan;
     
@@ -170,20 +136,32 @@ class KaryawanController extends Controller
             $tglPengajuan = Carbon::now()->format('Y-m-d h:m:s');
             // status 0 = pending HOD, 1= approve, 2=reject
             $status = '0';
-            $tanggal = json_encode($tanggal_);
+          
+            // $tanggal = json_encode($tanggal_);
             $note = '-';
            
             $sisaCuti =0;
-            // cek sisa cuti
+            // cek sisa cuti in Master
             $c_cuti = new CutiController();
             $dt = $c_cuti->getCutiKaryawan($idKaryawan, $tahun,$idCuti);
-            $sisaCuti = $dt->sisa_cuti;
-            $idMst = $dt->id_cuti_mst;
-          
-            if($sisaCuti > 0)
+
+            foreach($dt as $x)
+            {
+        
+                $idMst = $x->id_cuti_mst;
+                $sisaCutiDB = $x->sisa_cuti;
+                break;
+            }
+            // $c_toolsDateClass = new ToolsDateCLass();
+            // $isRangeDate = $c_toolsDateClass->checkDateRange($tanggal,$dateStart,$dateEnd);
+         
+            if($sisaCutiDB >= $totalCuti)
             {  
                 // insert cuti
-                $req = $this->insertCutiTRN($idMst,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status);
+                $c_generateID = new GenerateIDController();
+                $idTrn = $c_generateID->getIDCutiTrn($idCuti);
+
+                $req = $this->insertCutiTRN($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status);
                 $result=response()->json([
                     'status' => 'success',
                     'message' => 'Request Cuti Karyawan Successfuly',
@@ -194,7 +172,7 @@ class KaryawanController extends Controller
             {
                 $result=response()->json([
                     'status' => 'failed',
-                    'message' => 'Sisa Cuti Anda sudah Habis',
+                    'message' => 'Sisa Cuti Anda sudah Tidak Mencukupi, Cuti Tersisa : '.$sisaCutiDB,
                 ]);
             }
 
@@ -272,35 +250,31 @@ class KaryawanController extends Controller
         return $result_;
     }
 
-    public function insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$sisaCuti,$masaBerlaku,$tglBerlaku)
+    public function insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$sisaCuti,$tipeMasaBerlaku,$masaBerlaku,$tglBerlaku)
     {
         // generate ID
         $c_generateID = new GenerateIDController();
         $idMst = $c_generateID->getIdCutiMst($tipeCuti);
 
         $c_cuti = new CutiController();
-        $result_['insert_masterCutiDB'] = $c_cuti->insertCutiMst($idMst,$idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$sisaCuti,$masaBerlaku,$tglBerlaku);
+        $result_['insert_masterCutiDB'] = $c_cuti->insertCutiMst($idMst,$idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$sisaCuti,$tipeMasaBerlaku,$masaBerlaku,$tglBerlaku);
         return $result_;
     }
 
-    private function insertCutiTRN($idMst,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status)
-    {
-        // generate ID
-        $c_generateID = new GenerateIDController();
-        $idTrn = $c_generateID->getIDCutiTrn($idCuti);
-       
+    private function insertCutiTRN($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status)
+    {  
         // insert data
         $c_cuti = new CutiController();
         $result_['insert_cutiDB'] = $c_cuti->insetCutiTrn($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status);
 
         // update data master cuti
         $c_cuti = new CutiController();
-        $result_['update_sisaCut'] = $c_cuti->updateMasterCutiKaryawan($idKaryawan,$tahun,$idCuti);
+        $result_['update_sisaCut'] = $c_cuti->updateMasterCutiKaryawan($idKaryawan,$idMst,$idTrn,$idCuti);
      
         // get list approve up Level
         $c_grade = new GradeController();
         $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan);
-  
+     
         if($lstApproveGradeUp!=null)
         {
             foreach($lstApproveGradeUp as $v)
@@ -318,12 +292,13 @@ class KaryawanController extends Controller
 
             // sent whatsapp message
             $c_sentWaController = new SentWhatsappController();
-            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($telephone,$idKaryawan,$cuti,$tanggal,$note);
+            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($idTrn,$telephone,$idKaryawan,$cuti,$tanggal,$note);
         }
         else
         {
             $result_['insert_approveHistory'] = 'ID Karyawan : '. $idKaryawan.' Tidak memiliki Atasan untuk Approve';
         }
+        
         return $result_;
     }
 
@@ -369,5 +344,86 @@ class KaryawanController extends Controller
     }
     // --------------------------------------------------------------------------------------------
 
+    // karyawan mengajukan Cuti Khusus
+    public function requestCutiKhusus(Request $request)
+    {
+        $idKaryawan = $request->id_karyawan;
+        $idCuti = $request->id_cuti;
+        $tipeCuti = $request->tipe_cuti;
+        $cuti = $request->cuti;
+        $tanggal = $request->tanggal;
+        $totalCuti = $request->total_cuti;
+        $keterangan = $request->keterangan;
+        $lampiranFile = $request->lampiran_file;
 
+        try
+        {
+            // insert cuti
+            $tahun = Carbon::now()->format('Y');
+            $idPeriode = '-';
+            $tglPengajuan = Carbon::now()->format('Y-m-d h:m:s');
+            // status 0 = pending HOD, 1= approve, 2=reject
+            $status = '0';
+
+            // get tipe Cuti
+            $c_cuti = new CutiController();
+            $dataCuti = $c_cuti->getTypeMasterCutiByID($idCuti);
+
+            $masaBerlaku = $dataCuti->masa_berlaku;
+            $jmlHari = 0;
+            $tipeMasaBerlaku = $dataCuti->tipe_masa_berlaku;
+
+            $tanggalDecode = json_decode($tanggal);
+            // get tanggal first json Decode
+            $tanggalAwal = $tanggalDecode[0];
+         
+            // insert cuti mst
+            $result_['insert_cutiMST'] =  $this->insertCuti($idCuti,$tahun,$idKaryawan,$tipeCuti,$cuti,$jmlHari,$tipeMasaBerlaku,$masaBerlaku,$tanggalAwal);
+          
+            $sisaCuti =0;
+            // cek sisa cuti
+            $c_cuti = new CutiController();
+            $dt = $c_cuti->getCutiKaryawan($idKaryawan,$tahun,$idCuti);
+            foreach($dt as $x)
+            {
+                $idMst = $x->id_cuti_mst;
+                $sisaCuti = $x->sisa_cuti;
+                break;
+            }
+            
+            $keterangan = 'Cuti Khusus';
+          
+            if($sisaCuti > 0)
+            {  
+                // insert cuti
+                // generate ID
+                $c_generateID = new GenerateIDController();
+                $idTrn = $c_generateID->getIDCutiTrn($idCuti);
+                $result_['insert_cutiTRN'] = $this->insertCutiTRN($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$sisaCuti,$keterangan,$tglPengajuan,$status);
+           
+                // insert Image
+                if($lampiranFile!='') {
+                    // call class upload Image
+                    $c_uploadImage = new ClassUploadImageClass();
+                    $urlPathImgLampiran = $c_uploadImage->processImageLampiran($request->file('lampiran_file'),$idKaryawan,$idMst,$idTrn);
+         
+                    // insert 
+                } 
+            }
+            else
+            {
+                $result_['insert_cutiTRN'] ='Sisa Cuti Anda sudah Habis';
+            }
+            
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Request Cuti Karyawan Successfuly',
+                'callback' => $result_
+            ]);
+
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    } 
 }

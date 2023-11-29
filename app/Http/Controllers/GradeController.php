@@ -132,7 +132,7 @@ class GradeController extends Controller
          // data user login
          $c_users = new UsersController();
          $dtUsers = $c_users->getData($idKaryawan);
-
+        
          if($dtUsers !=null)
          {
             $idDepartemen = $dtUsers->id_departemen;
@@ -144,7 +144,6 @@ class GradeController extends Controller
            $c_gradeController = new GradeController();
            $dtGradeDsc = $c_gradeController->getTypeMasterGrade('desc');
            $gradeUp = $c_gradeController->getLevelGrade($dtGradeDsc,$idGrade,$approveLvUp);
-
            $firstApprove=true;
            foreach($gradeUp as $v)
            {

@@ -37,14 +37,13 @@ class HODController extends Controller
         $idkaryawan = $request->id_karyawan;
         try {
             $canApprove = $this->cekApprove($idkaryawan);
+          
             if($canApprove->approve=='1')
             {
                 $roleApprove = $this->roleApprove($idkaryawan);
-
+            
                 $c_cuti = new CutiController();
-                // $c_komplement = new KomplementController();
                 $reqCuti = $c_cuti->getNotifApprove($idkaryawan,$canApprove->type_approve,$roleApprove);
-                // $reqKomplemen = $c_komplement->getNotifApprove($idkaryawan);
 
                 $result=response()->json([
                     'status' => 'success',
@@ -117,6 +116,21 @@ class HODController extends Controller
         $c_cutiController = new CutiController();
         $result_['update_actionCuti'] = $c_cutiController->updateApproveHistory($idCutiTrn,$status,$note,$idKaryawanApprove,$tglApprove);
  
+        // get data cuti TRN by ID Trn
+        $c_cutiController = new CutiController();
+        $result_['get_dataCutiTRN'] = $c_cutiController->getCutiTrn($idCutiTrn);
+     
+        $idMst = $result_['get_dataCutiTRN']->id_cuti_mst;
+        $idKaryawan = $result_['get_dataCutiTRN']->id_karyawan;
+        $nip = $result_['get_dataCutiTRN']->nik;
+        $name = $result_['get_dataCutiTRN']->name;
+        $telephone = $result_['get_dataCutiTRN']->no_telephone;
+        $idCuti = $result_['get_dataCutiTRN']->id_cuti;
+        $tahun = $result_['get_dataCutiTRN']->tahun;
+        $cuti = $result_['get_dataCutiTRN']->cuti;
+        $tanggal =$result_['get_dataCutiTRN']->tanggal;
+        $keterangan = $result_['get_dataCutiTRN']->keterangan;
+
         // jika aprove ditolak langsung update master cuti TRN
         if($status=='2')
         {
@@ -124,27 +138,14 @@ class HODController extends Controller
             $c_cutiController = new CutiController();
             // status 0=pending, 1=approve, 2=reject
             $result_['update_actionCuti'] = $c_cutiController->updateActionCutiTrn($idCutiTrn,$status,$note);
-
-             // get data cuti TRN by ID Trn
-             $c_cutiController = new CutiController();
-             $result_['get_dataCutiTRN'] = $c_cutiController->getCutiTrn($idCutiTrn);
-
-             $idKaryawan = $result_['get_dataCutiTRN']->id_karyawan;
-             $name = $result_['get_dataCutiTRN']->name;
-             $telephone = $result_['get_dataCutiTRN']->no_telephone;
-             $idCuti = $result_['get_dataCutiTRN']->id_cuti;
-             $tahun = $result_['get_dataCutiTRN']->tahun;
-             $cuti = $result_['get_dataCutiTRN']->cuti;
-             $tanggal =$result_['get_dataCutiTRN']->tanggal;
-            //  $note = $result_['get_dataCutiTRN']->keterangan;
            
             // update data master cuti
             $c_cuti = new CutiController();
-            $result_['update_sisaCut'] = $c_cuti->updateMasterCutiKaryawan($idKaryawan,$tahun,$idCuti);
+            $result_['update_sisaCut'] = $c_cuti->updateMasterCutiKaryawan($idKaryawan,$idMst,$idCutiTrn,$idCuti);
 
             // sent whatsapp message
             $c_sentWaController = new SentWhatsappController();
-            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCutiCancel($telephone,$idKaryawan,$cuti,$tanggal,$note);
+            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCutiCancel($idCutiTrn,$telephone,$idKaryawan,$cuti,$tanggal,$note);
         }
         else
         {
@@ -152,7 +153,7 @@ class HODController extends Controller
              $c_cutiController =new CutiController();
              //  0=pending, 1=approve, 2=reject
              $result_['get_approve_history'] = $c_cutiController->getApproveHistory(0,$idCutiTrn);
-             
+            
              if($result_['get_approve_history']==null)
              {
                // selesai semua
@@ -161,24 +162,25 @@ class HODController extends Controller
                $result_['update_actionCuti'] = $c_cutiController->updateActionCutiTrn($idCutiTrn,$status,$note);
 
                // update tanggal di aplikasi lokaHR (API)
-               
-             }
+               $c_apiGuzzle = new API_Guzzle();
+               $var = 'update_jadwal_karyawan';
+               // cuti tahunan = 6, cuti khusus = 66
+               $valueKehadiran = '6';
+               $result_['update_lokaHR_jadwal_karyawan'] = $c_apiGuzzle->postServiceLokaHR($var,$nip,$tanggal,$keterangan,$valueKehadiran);
+              
+                // sent whatsapp message
+                $c_sentWaController = new SentWhatsappController();
+                $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCutiDiterima($idCutiTrn,$telephone,$idKaryawan,$cuti,$tanggal,$note);
+                
+            }
              else
              {
                 // masih ada data yg pending
-                // get data cuti TRN by ID Trn
-                $c_cutiController = new CutiController();
-                $result_['get_dataCutiTRN'] = $c_cutiController->getCutiTrn($idCutiTrn);
- 
                 $telephone = $result_['get_approve_history'][0]->telephone;
-                $idKaryawan = $result_['get_dataCutiTRN']->id_karyawan;
-                $cuti = $result_['get_dataCutiTRN']->cuti;
-                $tanggal =$result_['get_dataCutiTRN']->tanggal;
-                $note = $result_['get_dataCutiTRN']->keterangan;
 
                 // sent whatsapp message
                 $c_sentWaController = new SentWhatsappController();
-                $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($telephone,$idKaryawan,$cuti,$tanggal,$note);
+                $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($idCutiTrn,$telephone,$idKaryawan,$cuti,$tanggal,$keterangan);
              }
         }
        

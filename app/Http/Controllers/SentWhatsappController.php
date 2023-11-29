@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Client;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\App;
 
 class SentWhatsappController extends Controller
 {
-    public function sentWhatsappApproveCuti($telephone_,$idKaryawan_,$typeCuti_,$tanggalCuti_,$note_)
+    // notif kepada HOD ada request cuti masuk
+    public function sentWhatsappApproveCuti($idCuti,$telephone_,$idKaryawan_,$typeCuti_,$tanggalCuti_,$note_)
     {
         // get Data User Request
         $c_users = new UsersController();
@@ -18,44 +21,119 @@ class SentWhatsappController extends Controller
         $subDepartemen = $dtUser->sub_departemen;
         $grade = $dtUser->grade;
         $nama = $dtUser->name;
-        $tanggalCuti = $tanggalCuti_;
+        $tanggalCuti = $this->convertTanggal($tanggalCuti_);
+        $note = $note_;
+
+        // get Data User Recipient
+        $c_users = new UsersController();
+        $dtUserRecipient = $c_users->getDataByNoHp($telephone_);
+
+        $namaPenerima = $dtUserRecipient->name;
+    
+
+        // declare variable
+        $telephone = $telephone_;
+        $message = "Dear Bapak/Ibu *".$namaPenerima."* \n".
+        "Pengajuan cuti nomor : ".$idCuti." telah dibuat dengan detail sbb:"." \n\n".
+        "Nama : \n*".$nama."* \n\n".
+        "Dept/Sub Dept : \n".$departemen." / ".$subDepartemen." \n\n".
+        "Tipe Cuti : \n".$typeCuti_." \n\n".
+        "Tanggal Cuti : \n".$tanggalCuti." \n\n".
+        "Note : \n".$note." \n\n\n".
+        "Mohon untuk dapat melakukan pengecekan dan *Approval/Reject* permintaan tersebut."." \n"."Matur Nuwum."." \n\n"."[sent by Bot Loka]";
+
+        $result_ = $this->sentWA($telephone,$message);
+        return $result_;
+    }
+
+    // notif kepada karyawan ketika cutinya di tolak
+    public function sentWhatsappApproveCutiCancel($idCuti,$telephone_,$idKaryawan_,$typeCuti_,$tanggalCuti_,$note_)
+    {
+        // get Data User Request
+        $c_users = new UsersController();
+        $dtUser = $c_users->getData($idKaryawan_);
+
+        $departemen = $dtUser->departemen;
+        $subDepartemen = $dtUser->sub_departemen;
+        $grade = $dtUser->grade;
+        $nama = $dtUser->name;
+        $tanggalCuti = $this->convertTanggal($tanggalCuti_);
         $note = $note_;
 
         // declare variable
         $telephone = $telephone_;
-        $message = "*Ada Request Cuti Masuk*, \n".
-        "Type Cuti : ".$typeCuti_." \n\n".
-        $departemen."-".$subDepartemen."\n *".
-        $nama."*  \n\n".
-        "*Request Tanggal Cuti* :  \n".$tanggalCuti ." \nNote : ".$note." \n\n"."https://lokaryawan.salokapark.app/notification";
+        $message = "Dear Bapak/Ibu *".$nama."* \n".
+        "Pengajuan cuti nomor : ".$idCuti." telah dibuat dengan detail sbb:"." \n\n".
+        "Nama : \n".$nama." \n\n".
+        "Dept/Sub Dept : \n".$departemen." / ".$subDepartemen." \n\n".
+        "Tipe Cuti : \n".$typeCuti_." \n\n".
+        "Tanggal Cuti : \n".$tanggalCuti." \n\n".
+        "Note : \n".$note." \n\n\n".
+        "*DiReject*"." \n"."Matur Nuwum."." \n\n"."[sent by Bot Loka]";
 
+        $result_ = $this->sentWA($telephone,$message);
+        return $result_;
+    }
+
+     // notif kepada karyawan ketika cutinya di terima
+     public function sentWhatsappApproveCutiDiterima($idCuti,$telephone_,$idKaryawan_,$typeCuti_,$tanggalCuti_,$note_)
+     {
+         // get Data User Request
+         $c_users = new UsersController();
+         $dtUser = $c_users->getData($idKaryawan_);
+ 
+         $departemen = $dtUser->departemen;
+         $subDepartemen = $dtUser->sub_departemen;
+         $grade = $dtUser->grade;
+         $nama = $dtUser->name;
+         $tanggalCuti = $this->convertTanggal($tanggalCuti_);
+         $note = $note_;
+ 
+         // get Data User Recipient
+         $c_users = new UsersController();
+         $dtUserRecipient = $c_users->getDataByNoHp($telephone_);
+         $namaPenerima = $dtUserRecipient->name;
+
+         // declare variable
+         $telephone = $telephone_;
+         $message = "Dear Bapak/Ibu *".$namaPenerima."* \n".
+            
+         "Pengajuan cuti nomor : ".$idCuti." telah dibuat dengan detail sbb:"." \n\n".
+         "Nama : \n".$nama." \n\n".
+         "Dept/Sub Dept : \n".$departemen." / ".$subDepartemen." \n\n".
+         "Tipe Cuti : \n".$typeCuti_." \n\n".
+         "Tanggal Cuti : \n".$tanggalCuti." \n\n".
+         "Note : \n".$note." \n\n\n".
+         "Diterima"." \n"."Matur Nuwum."." \n\n"."[sent by Bot Loka]";
+         
+         $result_ = $this->sentWA($telephone,$message);
+         return $result_;
+     }
+
+    // ---------------------------------------------------------
+    private function sentWA($telephone,$message)
+    {
         $c_apiGuzzle = new API_Guzzle();
         $result_ = $c_apiGuzzle->getServiceWhatsapp($telephone,$message);
         return $result_;
     }
 
-    public function sentWhatsappApproveCutiCancel($telephone_,$idKaryawan_,$typeCuti_,$tanggalCuti_,$note_)
+    private function convertTanggal($jsonTanggal)
     {
-        // get Data User Request
-        $c_users = new UsersController();
-        $dtUser = $c_users->getData($idKaryawan_);
-
-        $departemen = $dtUser->departemen;
-        $subDepartemen = $dtUser->sub_departemen;
-        $grade = $dtUser->grade;
-        $nama = $dtUser->name;
-        $tanggalCuti = $tanggalCuti_;
-        $note = $note_;
-
-        // declare variable
-        $telephone = $telephone_;
-        $message = "*Request Cuti Yang Anda Ajukan Di Tolak*, \n".
-        "Type Cuti : ".$typeCuti_." \n\n".
-        "*Request Tanggal Cuti* :  \n".$tanggalCuti ." \nNote : ".$note." \n\n"."https://lokaryawan.salokapark.app";
+        $jsonDecode = json_decode($jsonTanggal);
+        $tanggal='';
         
-        $c_apiGuzzle = new API_Guzzle();
-        $result_ = $c_apiGuzzle->getServiceWhatsapp($telephone,$message);
-        return $result_;
+        foreach($jsonDecode as $v)
+        {
+            $tanggalDariDatabase = $v;
+
+            // Konversi format tanggal
+            App::setLocale('id');
+            $tanggalBaru = Carbon::parse($tanggalDariDatabase)->isoFormat('dddd, D MMMM YYYY');
+            // Jumat, 29 November 2024
+            $tanggal = $tanggal.$tanggalBaru." \n"; 
+        }
+        return $tanggal;
     }
     
 }
