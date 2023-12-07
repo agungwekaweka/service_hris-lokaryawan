@@ -132,7 +132,7 @@ class GradeController extends Controller
          // data user login
          $c_users = new UsersController();
          $dtUsers = $c_users->getData($idKaryawan);
-        
+     
          if($dtUsers !=null)
          {
             $idDepartemen = $dtUsers->id_departemen;

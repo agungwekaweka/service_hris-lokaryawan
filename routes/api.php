@@ -10,6 +10,10 @@ use App\Http\Controllers\KaryawanController;
 use App\Http\Controllers\CutiController;
 use App\Http\Controllers\KomplementController;
 use App\Http\Controllers\HODController;
+
+use App\Http\Controllers\Service_Cuti;
+use App\Http\Controllers\Service_Komplemen;
+
 use Illuminate\Support\Facades\Session;
 
 /*
@@ -30,6 +34,7 @@ use Illuminate\Support\Facades\Session;
 // * jika middleware aktif memerlukan session untuk mengakses route controller
 // Route::middleware([CheckStatus::class])->group(function(){
     Route::controller(KaryawanController::class)->group(function () {
+        // CUTI
         // add data master cuti & kompliment karyawan from lokaHR
         Route::get('insert_karyawan', 'insertKaryawan'); 
         // request cuti karyawan
@@ -42,6 +47,16 @@ use Illuminate\Support\Facades\Session;
         // jika type approve custom
         // insert cutom approve
         Route::post('insert_custom_approve', 'insertCustomApprove'); 
+
+        // KOMPLEMEN
+        // get data sisa komplemen karyawan
+        Route::get('get_komplemen', 'getKomplemenKaryawan'); 
+        // request komplemen
+        Route::post('request_komplemen', 'requestKomplemen'); 
+
+        // OVERTIME
+        // request overtime
+        Route::post('request_overtime', 'requestOvertime'); 
     });
 
     Route::controller(HODController::class)->group(function () {
@@ -58,14 +73,24 @@ use Illuminate\Support\Facades\Session;
         Route::get('get_request_cuti_ByID', 'getRequestCutiByID'); 
         // get data request cuti
         Route::get('get_request_cuti', 'getRequestCuti'); 
-        
-    });
-
-    Route::controller(KomplementController::class)->group(function () {
-        // get data komplement karyawan
-        Route::get('get_komplemen', 'getKomplemen'); 
     });
 // });
+
+// Service LokaHR
+Route::controller(Service_Cuti::class)->group(function () {
+    // get data master cuti karyawan
+    Route::get('get_master_cuti_karyawan', 'getListMasterCuti'); 
+    // get data master cuti karyawan
+    Route::get('get_request_cuti_karyawan', 'getListRequestCuti'); 
+});
+
+Route::controller(Service_Komplemen::class)->group(function () {
+    // get data master list Price Komplemen
+    Route::get('get_list_price_master_komplement', 'getListPriceMasterKomplemenByTanggal'); 
+
+    // get data master komplemen karyawan
+    Route::get('get_master_komplemen_karyawan', 'getListMasterKomplemen'); 
+});
 
 // CronJob
 // update masa berlaku Cuti

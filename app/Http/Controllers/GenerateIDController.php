@@ -21,7 +21,7 @@ class GenerateIDController extends Controller
         ->where('id_cuti_mst','like','%'.$prefixSubs.'%')
         ->first();
         $formattedNumber = str_pad($count->count, 6, '0', STR_PAD_LEFT);
-        // $id = IdGenerator::generate(['table' => 'cuti_mst', 'field' => 'id_cuti_mst', 'length' => 20, 'prefix' => $prefix]);
+      
         $id = $prefix.'-'.$formattedNumber;
         return $id;
     }
@@ -30,7 +30,7 @@ class GenerateIDController extends Controller
     {
         $id='-';
         $prefix = $idCuti.'-'.date('ymd');
-        // $id = IdGenerator::generate(['table' => 'cuti_trn', 'field' => 'id_cuti_trn', 'length' => 20, 'prefix' => $prefix]);
+    
         $prefixSubs = substr($prefix,0,8);
         $count = DB::table('cuti_trn')
         ->select(DB::raw('COUNT(ID) as count'))
@@ -53,6 +53,72 @@ class GenerateIDController extends Controller
         ->first();
         $formattedNumber = str_pad($count->count, 3, '0', STR_PAD_LEFT);
         $id = $formattedNumber;
+        return $id;
+    }
+
+    public function getIDKomplemenMst($idKomplemen)
+    {
+        $id='-';
+        $prefix = $idKomplemen.'-'.date('ymd');
+        $prefixSubs = substr($prefix,0,8);
+        $count = DB::table('komplement_mst')
+        ->select(DB::raw('COUNT(ID) as count'))
+        ->where('id_komplement',$idKomplemen)
+        ->where('id_komplement_mst','like','%'.$prefixSubs.'%')
+        ->first();
+        $formattedNumber = str_pad($count->count, 6, '0', STR_PAD_LEFT);
+        $id = $prefix.'-'.$formattedNumber;
+        return $id;
+    }
+
+    public function getIDKomplemenTrn($idKaryawan)
+    {
+        $id='-';
+        $prefix = 'RK'.$idKaryawan .'-'.date('ymd');
+     
+        $prefixSubs = substr($prefix,0,9);
+        $count = DB::table('komplement_trn')
+        ->select(DB::raw('COUNT(ID) as count'))
+        ->where('id_karyawan',$idKaryawan)
+        ->where('id_komplemen_trn','like','%'.$prefixSubs.'%')
+        ->first();
+
+        $formattedNumber = str_pad($count->count, 6, '0', STR_PAD_LEFT);
+        $id = $prefix.'-'.$formattedNumber;
+        return $id;
+    }
+
+    public function getIDOvertimeMst()
+    {
+        $id='-';
+        $prefix = 'LM'.'-'.date('ymd');
+        $prefixSubs = substr($prefix,0,5);
+      
+        $count = DB::table('overtime')
+        ->select(DB::raw('COUNT(ID) as count'))
+        ->where('id_overtime','like','%'.$prefixSubs.'%')
+        ->first();
+        
+        $formattedNumber = str_pad($count->count, 6, '0', STR_PAD_LEFT);
+        $id = $prefix.'-'.$formattedNumber;
+        return $id;
+    }
+
+    // belum jadi di pastikan
+    public function getBookingCode($idKaryawan)
+    {
+        $id='-';
+        $prefix = $idKaryawan .date('ymd');
+        $prefixSubs = substr($prefix,0,6);
+    
+        $count = DB::table('komplement_trn')
+        ->select(DB::raw('COUNT(ID) as count'))
+        ->where('id_karyawan',$idKaryawan)
+        ->where('kode_booking','like','%'.$prefixSubs.'%')
+        ->first();
+       
+        $formattedNumber = str_pad($count->count, 4, '0', STR_PAD_LEFT);
+        $id = $prefix.$formattedNumber;
         return $id;
     }
 }

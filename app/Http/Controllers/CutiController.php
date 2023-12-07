@@ -439,17 +439,45 @@ class CutiController extends Controller
     //     return $data;
     // }
 
-    // mengambil data history approve yg belum di setujui
+    // mengambil data history approve
     public function getApproveHistory($typeHistory_,$idCutiTrn_)
     {
-        // 0= pending, 1=approve, 2=reject, else all data
+        // 0= pending, 1=approve, 2=reject, else '' all data
         $typeHistory = $typeHistory_;
         $idCutiTrn = $idCutiTrn_;
       
         $data_ = DB::table('cuti_approve_history')
         ->select('id_cuti_trn','status','telephone','id_karyawan_approve','tgl_approve','note')
-        ->where('id_cuti_trn',$idCutiTrn)
-        ->where('status',$typeHistory);
+        ->where('id_cuti_trn',$idCutiTrn);
+        if($data_->exists())
+        {
+            if($typeHistory!='')
+            {
+                $data_->where('status',$typeHistory);
+            }
+
+            $data = $data_->get();
+        }
+        else
+        {
+            $data=null;
+        }
+        return $data;
+    }
+
+    // mengambil data lampiran
+    public function getDataLampiran($idCutiTrn_)
+    {
+        $idCutiTrn = $idCutiTrn_;
+
+        $c_Server = new API_Guzzle();
+        $urlServer=$c_Server->urlLokaryawan();
+      
+        $data_ = DB::table('cuti_lampiran')
+        ->select('id_cuti_mst',
+        'id_cuti_trn','tahun',
+        DB::raw("CONCAT('".$urlServer."',url) as url"))
+        ->where('id_cuti_trn',$idCutiTrn);
         if($data_->exists())
         {
             $data = $data_->get();
@@ -617,9 +645,8 @@ class CutiController extends Controller
                     $idCutiTrn = $x->id_cuti_trn;
                     
                     // cek apakah masih ada history approve yg belum di setujui
-                    $c_cutiController =new CutiController();
                     //  0=pending, 1=approve, 2=reject
-                    $result_ = $c_cutiController->getApproveHistory(0,$idCutiTrn);
+                    $result_ = $this->getApproveHistory(0,$idCutiTrn);
                  
                     if($result_==null)
                     {
@@ -716,12 +743,17 @@ class CutiController extends Controller
         try
         {
             $data = $this->getCutiTrn($idCutiTrn);
+            $dataHistory = $this->getApproveHistory('',$idCutiTrn);
+            $dataLampiran = $this->getDataLampiran($idCutiTrn);
+          
             if($data !=null)
             {
                 $result=response()->json([
                     'status' => 'success',
                     'message' => 'Get Data Cuti By ID Successfuly',
-                    'data' => $data
+                    'data' => $data,
+                    'history_approve' =>$dataHistory,
+                    'data_lampiran' =>$dataLampiran
                 ]);
             }
             else

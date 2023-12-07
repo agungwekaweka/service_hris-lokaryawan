@@ -78,12 +78,15 @@ class KaryawanController extends Controller
                     $lstMstKomplemen = $c_komplement->getTypeMasterKomplemen();
                     foreach($lstMstKomplemen as $v)
                     {
-                        $idKomplement = $v->id_komplement;
+                        $idKomplement = $v->ticket_id;
                         $tipeKomplement = $v->komplement;
                         $qty = $v->qty;
 
+                        $c_generateID = new GenerateIDController();
+                        $idKomplemenMst = $c_generateID->getIDKomplemenMst($idKomplement);
+
                         // insert Master Komplemen
-                        $result_['karyawn_active'][2] = $this->insertKomplement($idKomplement, $tahun,$idAbsen,$tipeKomplement,$qty);
+                        $result_['karyawn_active'][2] = $this->insertKomplementMst($idKomplemenMst,$idKomplement, $tahun,$idAbsen,$tipeKomplement,$qty);
                     }     
                 }
 
@@ -316,20 +319,6 @@ class KaryawanController extends Controller
         return $result_;
     }
 
-    private function insertKomplement($idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement)
-    {
-        $c_komplement = new KomplementController();
-        $result_['insert_KomplementDB'] = $c_komplement->insertKomplemenMst($idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement);
-        return $result_;
-    }
-    
-    private function disableKomplement($idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement)
-    {
-        $c_komplement = new KomplementController();
-        $result_ = $c_komplement->insertKomplemenMst($idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement);
-        return $result_;
-    }
-
     private function updateAksesRoleApprove($idKaryawan,$approve,$typeApprove)
     {
         $c_users = new UsersController();
@@ -426,4 +415,222 @@ class KaryawanController extends Controller
             return $ex;
         }
     } 
+
+    // karyawan mengajukan komplemen
+    public function requestKomplemen(Request $request)
+    {
+        $idKaryawan = $request->id_karyawan;
+        $tiket = $request->tiket;
+        $tanggalKedatangan = $request->tanggal_kedatangan;
+        $keterangan = $request->keterangan;
+    
+        try {
+            // insert cuti
+            $tahun = Carbon::now()->format('Y');
+            $tglPengajuan = Carbon::now()->format('Y-m-d h:m:s');
+            // convert to json decode input tiket
+            $listTiket = json_decode($tiket);
+      
+                $validasiSisaKomplemen = $this->validasiSisaKomplemen($idKaryawan,$tahun,$listTiket);
+
+                if($validasiSisaKomplemen=='success')
+                {
+                    foreach($listTiket as $v)
+                    {
+                        $ticketID = $v->ticket_id;
+                        $ticketPriceID = $v->ticket_price_id;
+                        $productName = $v->product_name;
+                        $qtyPengajuan = $v->qty;
+                        $qtyBonus = $v->qty_bonus;
+                        $priceUnit = $v->price_unit;
+                        $subTotal = $v->sub_total;
+
+                        // cek sisa komplemen in Master
+                        $c_komplement = new KomplementController();
+                        // sample getKomplemenKaryawan($idKaryawan,$tahun,$type_komplemen)
+                        $dt = $c_komplement->getKomplemenKaryawan($idKaryawan,$tahun,$ticketID);
+                        $sisaKomplemenDB =$dt[0]->sisa_komplement;
+                       
+                        // validasi ok, insert ke DB
+                        $c_generateID = new GenerateIDController();
+                        $idKomplemenTrn = $c_generateID->getIDKomplemenTrn($idKaryawan);
+                        $kodeBooking = $c_generateID->getBookingCode($idKaryawan);
+                        dd($kodeBooking);
+                        // get komplemen in Master
+                        $c_komplement = new KomplementController();
+                        // sample getKomplemenKaryawan($idKaryawan,$tahun,$type_komplemen)
+                        $dt = $c_komplement->getKomplemenKaryawan($idKaryawan,$tahun,$ticketID);
+                        // get ID komplement Active
+                        $idKomplementMst = $dt[0]->id_komplement_mst;
+                    
+                        $keterangan = '-';
+                        $result_['insert_db'] = $this->insertKomplementTrn($idKomplementMst,$idKomplemenTrn,$ticketID,$idKaryawan,$tglPengajuan,$tanggalKedatangan,$tipeKomplemen,$hargaNormal,$hargaKomplemen,$kodeBooking,$keterangan);
+                    }             
+                }
+                else
+                {
+                    // sisa komplement tidak mencukupi
+                    $result=response()->json([
+                        'status' => 'failed',
+                        'message' => 'Request Komplemen Karyawan failed',
+                        'callback' => $validasiSisaKomplemen
+                    ]);
+                    return $result;
+                }
+
+             $result=response()->json([
+                'status' => 'success',
+                'message' => 'Request Komplemen Karyawan Successfuly',
+                'callback' => $result_
+            ]);
+
+            return $result;
+
+
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    // get sisa komplemen karyawan
+    public function getKomplemenKaryawan(Request $request) {  
+    $idKaryawan = $request->id_karyawan;
+    $tahun = $request->tahun;
+        try {
+            $c_komplement = new KomplementController();
+            // sample getKomplemenKaryawan($idKaryawan,$tahun,$type_komplemen)
+            $req = $c_komplement->getKomplemenKaryawan($idKaryawan,$tahun,'');
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Get Data Komplemen Karyawan Successfuly',
+                'data' => $req
+            ]);
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------
+    private function validasiSisaKomplemen($idKaryawan,$tahun,$listTiket)
+    {
+        foreach($listTiket as $v)
+        {
+            $idKomplemen = $v->ticket_id;
+            $productName = $v->product_name;
+            $qtyPengajuan = $v->qty;
+
+            // cek sisa komplemen in Master
+            $c_komplement = new KomplementController();
+            // sample getKomplemenKaryawan($idKaryawan,$tahun,$type_komplemen)
+            $dt = $c_komplement->getKomplemenKaryawan($idKaryawan,$tahun,$idKomplemen);
+            $sisaKomplemenDB =$dt[0]->sisa_komplement;
+
+            if($sisaKomplemenDB >= $qtyPengajuan)
+            {  
+              
+            }
+            else
+            {
+                return 'Sisa Komplemen "'.$productName.'" Anda sudah Tidak Mencukupi, Komplemen Tersisa : '.$sisaKomplemenDB;
+            }
+        }
+        return 'success';
+    }
+
+    private function insertKomplementMst($idKomplementMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement)
+    {
+        $c_komplement = new KomplementController();
+        $result_['insert_KomplementDB'] = $c_komplement->insertKomplemenMst($idKomplementMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement);
+        return $result_;
+    }
+
+    private function insertKomplementTrn($idKomplementMst,$idKomplemenTrn,$idKomplemen,$idKaryawan,$tglPengajuan,$tanggalKedatangan,$tipeKomplemen,$hargaNormal,$hargaKomplemen,$kodeBooking,$keterangan)
+    {
+        $c_komplemenController = new KomplementController();
+        $result_['insert_KomplementTrnDB'] = $c_komplemenController->insertKomplemenTrn($idKomplementMst,$idKomplemenTrn,$idKomplemen,$idKaryawan,$tglPengajuan,$tanggalKedatangan,$tipeKomplemen,$hargaNormal,$hargaKomplemen,$kodeBooking,$keterangan);
+        return $result_;
+    }
+    // 
+
+    // Overtime
+    public function requestOvertime(Request $request)
+    {
+        $idKaryawan = $request->id_karyawan;
+        $tglLembur = $request->tgl_lembur;
+        $jamLembur = $request->jam_lembur;
+        $keterangan = $request->keterangan;
+
+        try {
+            // insert cuti
+            $tahun = Carbon::now()->format('Y');
+            $tglPengajuan = Carbon::now()->format('Y-m-d h:m:s');
+            // 0=pending; 1=approve; 2=reject
+            $status = '0';
+
+            $c_generateID = new GenerateIDController();
+            $idOvertime = $c_generateID->getIDOvertimeMst();
+        
+            // insert ke table master overtime
+            $result_['insert_OvertimeMst'] = $this->insertOvertimeMst($idOvertime,$idKaryawan,$tglPengajuan,$tglLembur,$jamLembur,$keterangan);
+            
+            // insert ke table history overtime
+            $result_['insert_OvertimeHistory'] = $this->insertOvertimeHistory($idOvertime,$status,$telephone,$idKaryawanApprove,$tglApprove,$note);
+
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Request Lembur Karyawan Successfuly',
+                'callback' => $result_
+            ]);
+
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    private function insertOvertimeMst($idOvertime,$idKaryawan,$tglPengajuan,$tglLembur,$jamLembur,$keterangan)
+    {
+        // get list approve up Level
+        $c_grade = new GradeController();
+        $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan);
+ 
+        if($lstApproveGradeUp!=null)
+        {
+            foreach($lstApproveGradeUp as $v)
+            {
+
+                // 0=pending, 1=approve, 2=reject
+                $status = '0';
+                $telephone = $v->no_telephone;
+                $idKaryawanApprove = $v->id_karyawan;
+                $tglApprove = '0000-00-00';
+                $note = '-';
+
+                //insert list Approve up Level
+                $result_['insert_approveHistory'] = $this->insertOvertimeHistory($idOvertime,$status,$telephone,$idKaryawanApprove,$tglApprove,$note);
+            }
+
+            // sent whatsapp message
+            $c_sentWaController = new SentWhatsappController();
+            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveOvertimeHOD($idOvertime,$telephone,$idKaryawan,$cuti,$tanggal,$note);
+            
+        }
+        else
+        {
+            $result_['insert_approveHistory'] = 'ID Karyawan : '. $idKaryawan.' Tidak memiliki Atasan untuk Approve';
+        }
+        dd($result_);
+        $c_overtimeController = new OvertimeController();
+        $result_['insert_OvertimeMst'] = $c_overtimeController->insertOvertimeMst($idOvertime,$idKaryawan,$nip,$tglPengajuan,$tglLembur,$jamLembur,$totalJam,$keterangan);
+        return $result_;
+    }
+
+    private function insertOvertimeHistory($idOvertime,$status,$telephone,$idKaryawanApprove,$tglApprove,$note)
+    {
+        $c_overtimeController = new OvertimeController();
+        $result_['insert_OvertimeHistory'] = $c_overtimeController->insertOvertimeHistory($idOvertime,$status,$telephone,$idKaryawanApprove,$tglApprove,$note);
+        return $result_;
+    }
+   
 }

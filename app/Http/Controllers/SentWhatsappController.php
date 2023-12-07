@@ -109,6 +109,41 @@ class SentWhatsappController extends Controller
          $result_ = $this->sentWA($telephone,$message);
          return $result_;
      }
+    
+    //  Overtime
+    public function sentWhatsappApproveOvertimeHOD($idOvertime_,$telephone_,$idKaryawan_,$tanggalLembur_,$keterangan_)
+    {
+        // get Data User Request
+        $c_users = new UsersController();
+        $dtUser = $c_users->getData($idKaryawan_);
+
+        $idOvertime = $idOvertime_;
+        $tanggalLembur = $tanggalLembur_;
+        $keterangan = $keterangan_;
+
+        $departemen = $dtUser->departemen;
+        $subDepartemen = $dtUser->sub_departemen;
+        $grade = $dtUser->grade;
+        $nama = $dtUser->name;
+
+        // get Data User Recipient
+        $c_users = new UsersController();
+        $dtUserRecipient = $c_users->getDataByNoHp($telephone_);
+        $namaPenerima = $dtUserRecipient->name;
+
+        // declare variable
+        $telephone = $telephone_;
+        $message = "Dear Bapak/Ibu *".$namaPenerima."* \n".
+        "Pengajuan Lembur nomor : ".$idOvertime." telah dibuat dengan detail sbb:"." \n\n".
+        "Nama : \n*".$nama."* \n\n".
+        "Dept/Sub Dept : \n".$departemen." / ".$subDepartemen." \n\n".
+        "Tanggal Lembur : \n".$tanggalLembur." \n\n".
+        "Note : \n".$keterangan." \n\n\n".
+        "Mohon untuk dapat melakukan pengecekan dan *Approval/Reject* permintaan tersebut."." \n"."Matur Nuwum."." \n\n"."[sent by Bot Loka]";
+
+        $result_ = $this->sentWA($telephone,$message);
+        return $result_;
+    }
 
     // ---------------------------------------------------------
     private function sentWA($telephone,$message)
