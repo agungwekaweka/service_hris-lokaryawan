@@ -553,7 +553,9 @@ class KaryawanController extends Controller
     }
     // 
 
-    // Overtime
+    // -------------------------------------------------------------------------------------------------
+    // OVERTIME
+    // karyawan request overtime
     public function requestOvertime(Request $request)
     {
         $idKaryawan = $request->id_karyawan;
@@ -574,9 +576,6 @@ class KaryawanController extends Controller
             // insert ke table master overtime
             $result_['insert_OvertimeMst'] = $this->insertOvertimeMst($idOvertime,$idKaryawan,$tglPengajuan,$tglLembur,$jamLembur,$keterangan);
             
-            // insert ke table history overtime
-            $result_['insert_OvertimeHistory'] = $this->insertOvertimeHistory($idOvertime,$status,$telephone,$idKaryawanApprove,$tglApprove,$note);
-
             $result=response()->json([
                 'status' => 'success',
                 'message' => 'Request Lembur Karyawan Successfuly',
@@ -589,8 +588,14 @@ class KaryawanController extends Controller
         }
     }
 
+    // function Overtime ------------------------------------------
     private function insertOvertimeMst($idOvertime,$idKaryawan,$tglPengajuan,$tglLembur,$jamLembur,$keterangan)
     {
+        $nip='-';
+        $totalJam = 0;
+        $c_overtimeController = new OvertimeController();
+        $result_['insert_OvertimeMst'] = $c_overtimeController->insertOvertimeMst($idOvertime,$idKaryawan,$nip,$tglPengajuan,$tglLembur,$jamLembur,$totalJam,$keterangan);
+        
         // get list approve up Level
         $c_grade = new GradeController();
         $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan);
@@ -599,7 +604,6 @@ class KaryawanController extends Controller
         {
             foreach($lstApproveGradeUp as $v)
             {
-
                 // 0=pending, 1=approve, 2=reject
                 $status = '0';
                 $telephone = $v->no_telephone;
@@ -613,16 +617,13 @@ class KaryawanController extends Controller
 
             // sent whatsapp message
             $c_sentWaController = new SentWhatsappController();
-            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveOvertimeHOD($idOvertime,$telephone,$idKaryawan,$cuti,$tanggal,$note);
+            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveOvertimeHOD($idOvertime,$telephone,$idKaryawan,$tglLembur,$jamLembur,$keterangan);
             
         }
         else
         {
             $result_['insert_approveHistory'] = 'ID Karyawan : '. $idKaryawan.' Tidak memiliki Atasan untuk Approve';
         }
-        dd($result_);
-        $c_overtimeController = new OvertimeController();
-        $result_['insert_OvertimeMst'] = $c_overtimeController->insertOvertimeMst($idOvertime,$idKaryawan,$nip,$tglPengajuan,$tglLembur,$jamLembur,$totalJam,$keterangan);
         return $result_;
     }
 
@@ -632,5 +633,5 @@ class KaryawanController extends Controller
         $result_['insert_OvertimeHistory'] = $c_overtimeController->insertOvertimeHistory($idOvertime,$status,$telephone,$idKaryawanApprove,$tglApprove,$note);
         return $result_;
     }
-   
+    // ------------------------------------------------------------------
 }

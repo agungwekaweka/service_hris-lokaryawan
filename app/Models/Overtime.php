@@ -17,6 +17,7 @@ class Overtime extends Model
         'tgl_lembur',
         'jam_lembur',
         'total_jam',
-        'status'
+        'status',
+        'is_dell'
     ];
 }

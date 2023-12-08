@@ -32,6 +32,27 @@ class HODController extends Controller
         }
     }
 
+    // hod melakukan action terkait request overtime
+    public function actionRequestOvertime(Request $request) {  
+        $idOvertime = $request->id_overtime;
+        $status = $request->status;
+        $note = $request->note;
+        $idKaryawanApprove = $request->id_karyawan_approve;
+        try {
+            $tglApprove = Carbon::now()->format('Y-m-d H:i:s');
+            $req = $this->actionRequestOvertime_($idOvertime,$status,$note,$idKaryawanApprove,$tglApprove);
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Update Action Cuti Successfuly',
+                'data' => $req
+            ]);
+
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
     // get notif approve 
     public function getNotifApprove(Request $request) {  
         $idkaryawan = $request->id_karyawan;
@@ -65,6 +86,7 @@ class HODController extends Controller
         }
     }
 
+    // ---------------------------------------------------------------------
     private function cekApprove($idKaryawan_)
     {
         $idKaryawan = $idKaryawan_;
@@ -181,6 +203,75 @@ class HODController extends Controller
                 // sent whatsapp message
                 $c_sentWaController = new SentWhatsappController();
                 $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($idCutiTrn,$telephone,$idKaryawan,$cuti,$tanggal,$keterangan);
+             }
+        }
+       
+        return $result_;
+    }
+
+    private function actionRequestOvertime_($idOvertime,$status,$note,$idKaryawanApprove,$tglApprove)
+    {
+        // update cuti_approve_history
+        $c_overtimeController = new OvertimeController();
+        $result_['update_actionCuti'] = $c_overtimeController->updateApproveHistory($idOvertime,$status,$note,$idKaryawanApprove,$tglApprove);
+
+        // get data overtime by ID Trn
+        $c_overtimeController = new OvertimeController();
+        $result_['get_dataOvertimeByID'] = $c_overtimeController->getOvertimeRequest($idOvertime,'');
+   
+        $telephone = $result_['get_dataOvertimeByID'][0]->no_telephone;
+        $nik = $result_['get_dataOvertimeByID'][0]->nik;
+        $idKaryawan = $result_['get_dataOvertimeByID'][0]->id_karyawan;
+        $tanggalLembur =  $result_['get_dataOvertimeByID'][0]->tgl_lembur;
+        $jamLembur = $result_['get_dataOvertimeByID'][0]->jam_lembur;
+        $keterangan = $result_['get_dataOvertimeByID'][0]->keterangan;
+
+        // jika aprove ditolak langsung update master Overtime
+        if($status=='2')
+        {
+            // update master overtime
+            $c_overtimeController = new OvertimeController();
+            // status 0=pending, 1=approve, 2=reject
+            $result_['update_masterOvertime'] = $c_overtimeController->updateActionOvertimeMst($idOvertime,$status,$note);
+
+            // sent whatsapp message
+            $c_sentWaController = new SentWhatsappController();
+            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappOvertimeDiTolak($idOvertime,$telephone,$idKaryawan,$tanggalLembur,$jamLembur,$note);
+        }
+        else
+        {
+             // cek apakah masih ada history approve yg belum di setujui
+             $c_overtimeController =new OvertimeController();
+             //  0=pending, 1=approve, 2=reject
+             $result_['get_approve_history'] = $c_overtimeController->getApproveHistory(0,$idOvertime);
+           
+             if($result_['get_approve_history']==null)
+             {
+               // selesai semua
+               $c_cutiController = new CutiController();
+               // status 0=pending, 1=approve, 2=reject
+               $result_['update_actionCuti'] = $c_cutiController->updateActionCutiTrn($idCutiTrn,$status,$note);
+
+               // update tanggal di aplikasi lokaHR (API)
+               $c_apiGuzzle = new API_Guzzle();
+               $var = 'update_jadwal_karyawan';
+               // cuti tahunan = 6, cuti khusus = 66
+               $valueKehadiran = '6';
+               $result_['update_lokaHR_jadwal_karyawan'] = $c_apiGuzzle->postServiceLokaHR($var,$nip,$tanggal,$keterangan,$valueKehadiran);
+              
+                // sent whatsapp message
+                $c_sentWaController = new SentWhatsappController();
+                $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappOvertimeDiterima($idCutiTrn,$telephone,$idKaryawan,$cuti,$tanggal,$note);
+                
+            }
+             else
+             {
+                // masih ada data yg pending
+                $telephone = $result_['get_approve_history'][0]->telephone;
+        
+                // sent whatsapp message
+                $c_sentWaController = new SentWhatsappController();
+                $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveOvertime($idOvertime,$telephone,$idKaryawan,$tanggalLembur,$jamLembur,$keterangan);
              }
         }
        

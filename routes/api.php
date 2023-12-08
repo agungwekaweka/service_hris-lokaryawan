@@ -10,6 +10,7 @@ use App\Http\Controllers\KaryawanController;
 use App\Http\Controllers\CutiController;
 use App\Http\Controllers\KomplementController;
 use App\Http\Controllers\HODController;
+use App\Http\Controllers\OvertimeController;
 
 use App\Http\Controllers\Service_Cuti;
 use App\Http\Controllers\Service_Komplemen;
@@ -62,6 +63,8 @@ use Illuminate\Support\Facades\Session;
     Route::controller(HODController::class)->group(function () {
         // update action cuti HOD
         Route::post('update_action_cuti', 'actionRequestCuti'); 
+        // update action overtime HOD
+        Route::post('update_action_overtime', 'actionRequestOvertime'); 
         // get notif aprovel 
         Route::get('get_notif_approve', 'getNotifApprove'); 
     });
@@ -73,6 +76,13 @@ use Illuminate\Support\Facades\Session;
         Route::get('get_request_cuti_ByID', 'getRequestCutiByID'); 
         // get data request cuti
         Route::get('get_request_cuti', 'getRequestCuti'); 
+    });
+
+    Route::controller(OvertimeController::class)->group(function () {
+        // get data overtime by ID
+        Route::get('get_request_overtime_ByID', 'getRequestOvertimeByID'); 
+        // get data request overtime
+        Route::get('get_request_overtime', 'getRequestOvertime'); 
     });
 // });
 
