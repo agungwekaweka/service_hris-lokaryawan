@@ -126,7 +126,7 @@ class SentWhatsappController extends Controller
         $subDepartemen = $dtUser->sub_departemen;
         $grade = $dtUser->grade;
         $nama = $dtUser->name;
-
+  
         // get Data User Recipient
         $c_users = new UsersController();
         $dtUserRecipient = $c_users->getDataByNoHp($telephone_);
@@ -177,7 +177,7 @@ class SentWhatsappController extends Controller
         "Tanggal Lembur : \n".$tanggalLembur." \n".
         "Jam Lembur : \n".$jamLembur ." jam"." \n\n".
         "Note : \n".$keterangan." \n\n\n".
-        "Mohon untuk dapat melakukan pengecekan dan *Approval/Reject* permintaan tersebut."." \n"."Matur Nuwum."." \n\n"."[sent by Bot Loka]";
+        "Diterima"." \n"."Matur Nuwum."." \n\n"."[sent by Bot Loka]";
 
         $result_ = $this->sentWA($telephone,$message);
         return $result_;

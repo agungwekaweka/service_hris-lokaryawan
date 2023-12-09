@@ -280,6 +280,7 @@ class KaryawanController extends Controller
      
         if($lstApproveGradeUp!=null)
         {
+            $firstLoad=true;
             foreach($lstApproveGradeUp as $v)
             {
                 // 0=pending, 1=approve, 2=reject
@@ -288,14 +289,17 @@ class KaryawanController extends Controller
                 $idKaryawanApprove = $v->id_karyawan;
                 $tglApprove = '0000-00-00';
                 $note = '-';
+                if($firstLoad==true)
+                {
+                    // sent whatsapp message
+                    $c_sentWaController = new SentWhatsappController();
+                    $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($idTrn,$telephone,$idKaryawan,$cuti,$tanggal,$note);
+                }
+                $firstLoad=false;
                 //insert list Approve up Level
                 $c_cuti = new CutiController();
                 $result_['insert_approveHistory'] = $c_cuti->insertCutiApproveHistory($idTrn, $status, $telephone, $idKaryawanApprove, $tglApprove, $note);
             }
-
-            // sent whatsapp message
-            $c_sentWaController = new SentWhatsappController();
-            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($idTrn,$telephone,$idKaryawan,$cuti,$tanggal,$note);
         }
         else
         {
@@ -599,9 +603,10 @@ class KaryawanController extends Controller
         // get list approve up Level
         $c_grade = new GradeController();
         $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan);
- 
+      
         if($lstApproveGradeUp!=null)
         {
+            $firstLoad = true;
             foreach($lstApproveGradeUp as $v)
             {
                 // 0=pending, 1=approve, 2=reject
@@ -610,15 +615,18 @@ class KaryawanController extends Controller
                 $idKaryawanApprove = $v->id_karyawan;
                 $tglApprove = '0000-00-00';
                 $note = '-';
+                if($firstLoad==true)
+                {
+                    // sent whatsapp message
+                    $c_sentWaController = new SentWhatsappController();
+                    $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveOvertime($idOvertime,$telephone,$idKaryawan,$tglLembur,$jamLembur,$keterangan);
+                }
+                $firstLoad=false;
 
                 //insert list Approve up Level
                 $result_['insert_approveHistory'] = $this->insertOvertimeHistory($idOvertime,$status,$telephone,$idKaryawanApprove,$tglApprove,$note);
             }
 
-            // sent whatsapp message
-            $c_sentWaController = new SentWhatsappController();
-            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveOvertimeHOD($idOvertime,$telephone,$idKaryawan,$tglLembur,$jamLembur,$keterangan);
-            
         }
         else
         {

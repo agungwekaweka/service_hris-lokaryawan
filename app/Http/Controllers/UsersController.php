@@ -116,6 +116,7 @@ class UsersController extends Controller
             ->where('users.no_telephone',$noTelephone)
             ->join('grade','grade.id_grade','users.id_grade')
             ->first();
+           
             return $data;
         } catch (\Exception $ex) {
             return $ex;

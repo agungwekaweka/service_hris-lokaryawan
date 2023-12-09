@@ -28,10 +28,6 @@ use Illuminate\Support\Facades\Session;
 |
 */
 
-// Route::controller(KaryawanController::class)->group(function () {
-//     Route::post('login', 'login'); 
-// });
-
 // * jika middleware aktif memerlukan session untuk mengakses route controller
 // Route::middleware([CheckStatus::class])->group(function(){
     Route::controller(KaryawanController::class)->group(function () {

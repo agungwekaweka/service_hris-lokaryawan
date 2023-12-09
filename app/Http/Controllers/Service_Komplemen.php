@@ -21,7 +21,7 @@ class Service_Komplemen extends Controller
              'id_komplement','komplement','qty','is_dell'
              )
              ->where('is_dell','1');
-             if($data_->exists())
+             if($data_->exists()) 
              {       
                 // cek tanggal
                 $c_apiGuzzle = new API_Guzzle();

@@ -608,12 +608,12 @@ class CutiController extends Controller
             // data user login
             $c_users = new UsersController();
             $dtUsers = $c_users->getData($idKaryawan);
-         
+           
             $idDepartemen = $dtUsers->id_departemen;
             $idSubDepartemen = $dtUsers->id_sub_departemen;
             $idGrade = $dtUsers->id_grade;
             $grade = $dtUsers->grade;
-
+          
             $approveLvUp = $dtUsers->approve_level_up;
             $approveLvDown = $dtUsers->approve_level_down;
 
@@ -623,10 +623,10 @@ class CutiController extends Controller
 
             $gradeDown = $c_gradeController->getLevelGrade($dtGradeAsc,$idGrade,$approveLvDown);
             // $gradeUp = $c_gradeController->getLevelGrade($dtGradeDsc,$idGrade,$approveLvUp);
-      
+       
             // return array
             $lstDtUsers = $c_gradeController->getKaryawanApproveByGrade($typeApprove,$roleApprove,$gradeDown,$idDepartemen,$idSubDepartemen);
-          
+           
             $data_ = DB::table('cuti_trn')
             ->select(
             'cuti_trn.id',
@@ -634,14 +634,17 @@ class CutiController extends Controller
             ->where('cuti_trn.status','0')
             ->whereIn('cuti_trn.id_karyawan',$lstDtUsers)
             ->orderBy('cuti_trn.tgl_pengajuan','asc');
+    
             if($data_->exists())
             {
                 $result = $data_->get();
-              
+            
                 $lstIDTrnOutstanding=null;
                 $countLstOutstanding=0;
+                
                 foreach($result as $x)
                 {
+                
                     $idCutiTrn = $x->id_cuti_trn;
                     
                     // cek apakah masih ada history approve yg belum di setujui

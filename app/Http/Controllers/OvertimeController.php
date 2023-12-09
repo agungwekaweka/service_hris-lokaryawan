@@ -138,14 +138,19 @@ class OvertimeController extends Controller
         $data_ = DB::table('overtime_history')
         ->select('id_overtime','status','telephone','id_karyawan_approve','tgl_approve','note')
         ->where('id_overtime',$idOvertime);
+    
         if($data_->exists())
         {
-            if($typeHistory!='')
-            {
-                $data_->where('status',$typeHistory);
-            }
-
-            $data = $data_->get();
+                if($typeHistory!='')
+                {
+                    $data_->where('status',$typeHistory);
+                }
+                if($data_->count()==0)
+                {
+                    $data=null;
+                    return $data;
+                }
+                $data = $data_->get();
         }
         else
         {
@@ -211,6 +216,112 @@ class OvertimeController extends Controller
             return $ex;
         }
     }
+
+     // get request overtime pending 
+     public function getNotifApprove($idKaryawan_,$typeApprove_,$roleApprove_)
+     {
+         $idKaryawan = $idKaryawan_;
+         $typeApprove = $typeApprove_;
+         $roleApprove = $roleApprove_;
+         try
+         {            
+             // data user login
+             $c_users = new UsersController();
+             $dtUsers = $c_users->getData($idKaryawan);
+          
+             $idDepartemen = $dtUsers->id_departemen;
+             $idSubDepartemen = $dtUsers->id_sub_departemen;
+             $idGrade = $dtUsers->id_grade;
+             $grade = $dtUsers->grade;
+ 
+             $approveLvUp = $dtUsers->approve_level_up;
+             $approveLvDown = $dtUsers->approve_level_down;
+ 
+             $c_gradeController = new GradeController();
+             $dtGradeAsc = $c_gradeController->getTypeMasterGrade('asc');
+             $dtGradeDsc = $c_gradeController->getTypeMasterGrade('desc');
+ 
+             $gradeDown = $c_gradeController->getLevelGrade($dtGradeAsc,$idGrade,$approveLvDown);
+             // $gradeUp = $c_gradeController->getLevelGrade($dtGradeDsc,$idGrade,$approveLvUp);
+       
+             // return array
+             $lstDtUsers = $c_gradeController->getKaryawanApproveByGrade($typeApprove,$roleApprove,$gradeDown,$idDepartemen,$idSubDepartemen);
+           
+             $data_ = DB::table('overtime')
+             ->select(
+             'overtime.id',
+             'overtime.id_overtime')
+             ->where('overtime.status','0')
+             ->whereIn('overtime.id_karyawan',$lstDtUsers)
+             ->orderBy('overtime.tgl_pengajuan','asc');
+             if($data_->exists())
+             {
+                 $result = $data_->get();
+     
+                 $lstIDTrnOutstanding=null;
+                 $countLstOutstanding=0;
+                 foreach($result as $x)
+                 {
+                     $idOvertime = $x->id_overtime;
+                     
+                     // cek apakah masih ada history approve yg belum di setujui
+                     //  0=pending, 1=approve, 2=reject
+                     $result_ = $this->getApproveHistory(0,$idOvertime);
+                  
+                     if($result_==null)
+                     {
+                     // selesai semua
+                         
+                     }
+                     else
+                     {
+                         // masih ada data yg pending
+                         if($result_[0]->id_karyawan_approve == $idKaryawan)
+                         {
+                             $lstIDTrnOutstanding[$countLstOutstanding] = $result_[0]->id_overtime;
+                             $countLstOutstanding++;
+                         }  
+                     }
+                 }
+               
+                 // cek apakah ada data
+                 if($lstIDTrnOutstanding!=null)
+                 {
+                     $data_ = DB::table('overtime')
+                     ->select(
+                     'overtime.id',
+                     'overtime.id_overtime',
+                     'users.departemen',
+                     'users.sub_departemen',
+                     'users.grade',
+                     'users.name',
+                     'overtime.id_karyawan',
+                     'overtime.tgl_pengajuan',
+                     'overtime.tgl_lembur',
+                     'overtime.jam_lembur',
+                     'overtime.total_jam')
+                     ->join('users','users.id_karyawan','overtime.id_karyawan')
+                     ->where('overtime.status','0')
+                     ->whereIn('overtime.id_overtime',$lstIDTrnOutstanding)
+                     ->orderBy('overtime.tgl_pengajuan','asc')
+                     ->get();
+                     $result = $data_;
+                 }
+                 else
+                 {
+                     $result = 'Data Tidak Ditemukan'; 
+                 }
+             }
+             else
+             {
+                 $result = 'Data Tidak Ditemukan';
+             }
+ 
+             return $result;
+         } catch (\Exception $ex) {
+             return $ex;
+         }
+     }
     
     // UPDATE
     public function updateActionOvertimeMst($idOvertime_,$status_,$note_)
