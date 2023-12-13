@@ -16,9 +16,9 @@ class API_Guzzle extends Controller
     private function urlWebWhatsapp()
     {
         // server
-        // $url = "103.164.114.22:8200/SendMessage";
+        $url = "103.164.114.22:8200/SendMessage";
         // lokal
-        $url = "10.10.10.28:8200/SendMessage";
+        // $url = "10.10.10.28:8200/SendMessage";
         return $url;
     }
 
@@ -40,7 +40,7 @@ class API_Guzzle extends Controller
 
     public function urlTiketingLocal()
     {
-        $url = 'http://192.168.0.139:8000/api/';
+        $url = 'https://servicepg.salokapark.app/api/';
         return $url;
     }
 
@@ -84,10 +84,10 @@ class API_Guzzle extends Controller
             return $ex;
         }
     }
+
     // END GET SERVICE
     // -------------------------------------------------------------------------------------------
 
-    
     // POST
     // POST SERVICE LOKAHR
     public function postServiceLokaHR($var,$nip,$jsonTanggal,$keterangan,$valueKehadiran)
@@ -111,26 +111,39 @@ class API_Guzzle extends Controller
     // END POST SERVICE 
 
     // POST SERVICE TIKETING
-    public function postServiceTiketing($cusName,$cusEmail,$arrival,$amountTotal,$bookingCode,$qty,$qtyBonus,$paymentMethods,$ticketOrder)
+    public function postServiceTiketing($apiServiceName,$name,$email,$employee_id,$bookingDate,$ticketOrder)
     {
         try {
             $client = new \GuzzleHttp\Client();
-            $var ='create-reservasi';
+            $var =$apiServiceName;
 
             $url = $this->urlTiketingLocal().$var;
-            $myBody['cust_name'] = $cusName;
-            $myBody['cust_email'] = $cusEmail;
-            $myBody['arrival'] = $arrival;
-            $myBody['amount_total'] = $amountTotal;
-            $myBody['booking_code'] = $bookingCode;
-            $myBody['qty'] = $qty;
-            $myBody['qty_bonus'] = $qtyBonus;
-            $myBody['payment_methods'] = $paymentMethods;
-            $myBody['ticket_order']=[
-                $ticketOrder
-            ];
-       
+            $myBody['name'] = $name;
+            $myBody['email'] = $name;
+            $myBody['employee_id'] = $employee_id;
+            $myBody['bookingDate'] = $bookingDate;
+            $myBody['ticketOrder']= $ticketOrder;
+
             $request = $client->post($url,  ['form_params'=>$myBody]);
+
+            $response = $request->getBody();
+            $jsonDecode = json_decode($response);
+            return $jsonDecode;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    } 
+
+    public function postGetPaymentLink($apiServiceName,$orderId)
+    {
+        try {
+            $client = new \GuzzleHttp\Client();
+            $var =$apiServiceName;
+          
+            $url = $this->urlTiketingLocal().$var;
+            $myBody['orderID'] = $orderId;
+            $request = $client->post($url,  ['form_params'=>$myBody]);
+        
             $response = $request->getBody();
             $jsonDecode = json_decode($response);
             return $jsonDecode;
@@ -153,6 +166,7 @@ class API_Guzzle extends Controller
        
             $request = $client->post($url,  ['form_params'=>$myBody]);
             $response = $request->getBody();
+      
             $jsonDecode = json_decode($response);
             return $jsonDecode;
          } catch (\Exception $ex) {

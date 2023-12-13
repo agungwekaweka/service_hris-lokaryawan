@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use DateTime;
+use Illuminate\Support\Facades\App;
 
 class ToolsDateClass extends Controller
 {
@@ -20,6 +21,15 @@ class ToolsDateClass extends Controller
         } else {
             return false;
         }
+    }
+
+    // sample 2023-01-10 to Jumat, 01 Januari 2023
+    public function convertTanggalDefault($value)
+    {
+        // Konversi format tanggal
+        App::setLocale('id');
+        $tanggalBaru = Carbon::parse($value)->isoFormat('dddd, D MMMM YYYY');
+        return $tanggalBaru;
     }
     
 }

@@ -13,7 +13,6 @@ class Service_Komplemen extends Controller
      public function getListPriceMasterKomplemenByTanggal(Request $request)
      {
          $tanggal = $request->tanggal;
-
          try
          {
              $data_ = DB::table('master_komplement')
@@ -25,8 +24,9 @@ class Service_Komplemen extends Controller
              {       
                 // cek tanggal
                 $c_apiGuzzle = new API_Guzzle();
+              
                 $dayHistory = $c_apiGuzzle->postServiceCekEvent($tanggal);
-                $data['is_holiday']=$dayHistory->holiday;
+                $data['is_holiday']= $dayHistory->holiday;
 
                 $listMasterKomplement = $data_->get();
                 $i=0;
@@ -38,13 +38,17 @@ class Service_Komplemen extends Controller
                         // ticket 50%
                         if($data['is_holiday']==true)
                         {
-                            $ticketPriceId = 180;
+                            $ticketPriceId = 183;
                         }
                         elseif($data['is_holiday']==false)
                         {
-                            $ticketPriceId=183;
+                            $dateToCheck = Carbon::parse($tanggal); // Replace with your date
+                            if ($dateToCheck->isWeekend()) {
+                                $ticketPriceId = 183;
+                            } else {
+                                $ticketPriceId=180;
+                            }
                         }
-                  
                     }
                     else
                     {
@@ -142,5 +146,24 @@ class Service_Komplemen extends Controller
          } catch (\Exception $ex) {
              return $ex;
          }
+     }
+
+     public function updateReservationTicket(Request $request)
+     {
+        $orderID = $request->order_id;
+        $kodeBooking = $request->kode_booking;
+        $status = $request->status;
+        try
+        {
+            $c_komplementController = new KomplementController();
+            $reult_ = $c_komplementController->updateReservationTicket($orderID,$kodeBooking,$status);
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Update Reservation Ticket Successfuly',
+            ]);
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
      }
 }

@@ -74,7 +74,7 @@ class GenerateIDController extends Controller
     public function getIDKomplemenTrn($idKaryawan)
     {
         $id='-';
-        $prefix = 'RK'.$idKaryawan .'-'.date('ymd');
+        $prefix = 'CP'.$idKaryawan .'-'.date('ymd');
      
         $prefixSubs = substr($prefix,0,9);
         $count = DB::table('komplement_trn')
@@ -91,7 +91,7 @@ class GenerateIDController extends Controller
     public function getIDOvertimeMst()
     {
         $id='-';
-        $prefix = 'LM'.'-'.date('ymd');
+        $prefix = 'OT'.'-'.date('ymd');
         $prefixSubs = substr($prefix,0,5);
       
         $count = DB::table('overtime')

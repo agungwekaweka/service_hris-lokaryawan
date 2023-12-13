@@ -19,7 +19,6 @@ class KaryawanController extends Controller
             $typeService = 'get_all_karyawan';
             $json_data = new API_Guzzle();
             $data_jsonDecode = $json_data->getServiceLokaHR($typeService);
-            // dd($data_jsonDecode);
             // cek status API
             if($data_jsonDecode->status=='success')
             {
@@ -426,50 +425,101 @@ class KaryawanController extends Controller
         $idKaryawan = $request->id_karyawan;
         $tiket = $request->tiket;
         $tanggalKedatangan = $request->tanggal_kedatangan;
-        $keterangan = $request->keterangan;
-    
+        $totalKomplement = $request->total_komplemen;
+        $paymentMethods = $request->payment_methods;
         try {
             // insert cuti
             $tahun = Carbon::now()->format('Y');
             $tglPengajuan = Carbon::now()->format('Y-m-d h:m:s');
             // convert to json decode input tiket
             $listTiket = json_decode($tiket);
-      
-                $validasiSisaKomplemen = $this->validasiSisaKomplemen($idKaryawan,$tahun,$listTiket);
+     
+            $validasiSisaKomplemen = $this->validasiSisaKomplemen($idKaryawan,$tahun,$listTiket);
 
                 if($validasiSisaKomplemen=='success')
                 {
+                    // insert Master TRN Komplement
+                    $c_generateID = new GenerateIDController();
+                    $idKomplemenTrn = $c_generateID->getIDKomplemenTrn($idKaryawan);
+
+                    // get detail user request
+                    $c_userController = new UsersController();
+                    $dtUser = $c_userController->getData($idKaryawan);
+
+                    $name = $dtUser->name;
+                    $email = $idKaryawan.'@salokapark.com';
+                    $noHp = $dtUser->no_telephone;
+                    $kodeBooking = '-';
+                    $status = '0';
+                    $orderId = '-';
+                    $result_['insert_KomplementTrn'] = $this->insertKomplementTrn($idKomplemenTrn,$idKaryawan,$name,$email,$noHp,$tglPengajuan,$tanggalKedatangan,$kodeBooking,$orderId,$tiket,$totalKomplement,$paymentMethods,$status);
+                    $i=0;
                     foreach($listTiket as $v)
                     {
                         $ticketID = $v->ticket_id;
                         $ticketPriceID = $v->ticket_price_id;
                         $productName = $v->product_name;
-                        $qtyPengajuan = $v->qty;
+                        $qtyPengajuan = $v->quantity;
                         $qtyBonus = $v->qty_bonus;
                         $priceUnit = $v->price_unit;
                         $subTotal = $v->sub_total;
 
-                        // cek sisa komplemen in Master
-                        $c_komplement = new KomplementController();
-                        // sample getKomplemenKaryawan($idKaryawan,$tahun,$type_komplemen)
-                        $dt = $c_komplement->getKomplemenKaryawan($idKaryawan,$tahun,$ticketID);
-                        $sisaKomplemenDB =$dt[0]->sisa_komplement;
-                       
-                        // validasi ok, insert ke DB
-                        $c_generateID = new GenerateIDController();
-                        $idKomplemenTrn = $c_generateID->getIDKomplemenTrn($idKaryawan);
-                        $kodeBooking = $c_generateID->getBookingCode($idKaryawan);
-                        dd($kodeBooking);
                         // get komplemen in Master
                         $c_komplement = new KomplementController();
-                        // sample getKomplemenKaryawan($idKaryawan,$tahun,$type_komplemen)
                         $dt = $c_komplement->getKomplemenKaryawan($idKaryawan,$tahun,$ticketID);
                         // get ID komplement Active
                         $idKomplementMst = $dt[0]->id_komplement_mst;
+
+                        $result_['insert_KomplementTicketOrder'] = $this->insertKomplementTicketOrder($idKomplementMst,$idKomplemenTrn,$ticketID,$productName,$ticketPriceID,$qtyPengajuan,$qtyBonus,$priceUnit,$subTotal);
+                        
+                        // update qty master komplement
+                        $c_komplement = new KomplementController();
+                        $result_[$i]['update_Stock Master '.$productName] =  $c_komplement->updateMasterKomplementKaryawan($idKaryawan,$idKomplementMst,$idKomplemenTrn,$ticketID);
+                        $i++;
+                    }  
+
+                    // cek payment method
+                    if($paymentMethods=='1')
+                    {
+                        // lunas
+                        $apiServiceName = 'create-reservation-compliment-employee';
+                        $resultAPIReservation = $this->API_Guzzle_CreateReservation($apiServiceName,$name,$email,$idKaryawan,$tanggalKedatangan,$listTiket);
+                       
+                        // breakdown data resultAPiReservation
+                        $orderID = $resultAPIReservation['insert_reservationTicket']->reservation_employee->order_id;
+                        $arrival_date = $resultAPIReservation['insert_reservationTicket']->reservation_employee->arrival_date;
+                        $bill = $resultAPIReservation['insert_reservationTicket']->reservation_employee->bill;
+                        $kodeBooking = $resultAPIReservation['insert_reservationTicket']->reservation_employee->booking_code;
+                        $status = '1';
+                        $paymentLink ='-';
+                        // update orderIDBooking Ticket
+                        $result_['update_orderID'] = $this->updateOrderIDBooking($idKomplemenTrn,$idKaryawan,$orderID,$kodeBooking,$paymentLink,$status);
+                        // sent wa komplement success
+                        $c_sentWaController = new SentWhatsappController();
+                        $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappKodeBookingTicket($idKomplemenTrn,$idKaryawan);
+                    }
+                    elseif($paymentMethods=='2')
+                    {
+                        // transfer / belum lunas
+                        $apiServiceName = 'create-reservation-employee';
+                        $orderID = $this->API_Guzzle_CreateReservation($apiServiceName,$name,$email,$idKaryawan,$tanggalKedatangan,$listTiket);
+                        
+                        // get Order ID ticket
+                        $orderID = $orderID['insert_reservationTicket']->order_id;
+
+                        // get payment Link
+                        $c_apiGuzzle = new API_Guzzle();
+                        $apiServiceName='get-xendit-token-employee';
+                        $result_['id_komplement_trn'] =$idKomplemenTrn;
+                        $result_['payment_link'] = $this->API_Guzzle_GetPaymentLink($apiServiceName,$orderID);
+
+                        $kodeBooking='-';
+                        $status = '2';
                     
-                        $keterangan = '-';
-                        $result_['insert_db'] = $this->insertKomplementTrn($idKomplementMst,$idKomplemenTrn,$ticketID,$idKaryawan,$tglPengajuan,$tanggalKedatangan,$tipeKomplemen,$hargaNormal,$hargaKomplemen,$kodeBooking,$keterangan);
-                    }             
+                        $paymentLink = $result_['payment_link']["get_paymentLink"]->payment_link;
+                        // update orderIDBooking Ticket
+                        $result_['update_orderID'] = $this->updateOrderIDBooking($idKomplemenTrn,$idKaryawan,$orderID,$kodeBooking,$paymentLink,$status);
+                    }
                 }
                 else
                 {
@@ -522,7 +572,7 @@ class KaryawanController extends Controller
         {
             $idKomplemen = $v->ticket_id;
             $productName = $v->product_name;
-            $qtyPengajuan = $v->qty;
+            $qtyPengajuan = $v->quantity;
 
             // cek sisa komplemen in Master
             $c_komplement = new KomplementController();
@@ -549,10 +599,38 @@ class KaryawanController extends Controller
         return $result_;
     }
 
-    private function insertKomplementTrn($idKomplementMst,$idKomplemenTrn,$idKomplemen,$idKaryawan,$tglPengajuan,$tanggalKedatangan,$tipeKomplemen,$hargaNormal,$hargaKomplemen,$kodeBooking,$keterangan)
+    private function insertKomplementTrn($idKomplemenTrn,$idKaryawan,$name,$email,$noHp,$tglPengajuan,$tanggalKedatangan,$kodeBooking,$orderId,$ticketOrder,$qtyTotal,$paymentMethods,$status)
     {
         $c_komplemenController = new KomplementController();
-        $result_['insert_KomplementTrnDB'] = $c_komplemenController->insertKomplemenTrn($idKomplementMst,$idKomplemenTrn,$idKomplemen,$idKaryawan,$tglPengajuan,$tanggalKedatangan,$tipeKomplemen,$hargaNormal,$hargaKomplemen,$kodeBooking,$keterangan);
+        $result_['insert_KomplementTrnDB'] = $c_komplemenController->insertKomplemenTrn($idKomplemenTrn,$idKaryawan,$name,$email,$noHp,$tglPengajuan,$tanggalKedatangan,$kodeBooking,$orderId,$ticketOrder,$qtyTotal,$paymentMethods,$status);
+        return $result_;
+    }
+
+    private function insertKomplementTicketOrder($idKomplementMst,$idKomplementTrn,$ticketId,$productName,$ticketPriceId,$qty,$qtyBonus,$priceUnit,$subTotal)
+    {
+        $c_komplemenController = new KomplementController();
+        $result_['insert_KomplementTicketOrder'] = $c_komplemenController->insertKomplemenTicketOrder($idKomplementMst,$idKomplementTrn,$ticketId,$productName,$ticketPriceId,$qty,$qtyBonus,$priceUnit,$subTotal);
+        return $result_;
+    }
+
+    private function updateOrderIDBooking($idKomplementTrn,$idKaryawan,$orderID,$kodeBooking,$paymentLink,$status)
+    {
+        $c_komplemenController = new KomplementController();
+        $result_['update_orderID'] = $c_komplemenController->updateOrderIDBooking($idKomplementTrn,$idKaryawan,$orderID,$kodeBooking,$paymentLink,$status);
+        return $result_;
+    }
+
+    private function API_Guzzle_CreateReservation($apiServiceName,$name,$email,$idKaryawan,$tanggalKedatangan,$ticketOrder)
+    {
+        $c_apiGuzzle = new API_Guzzle();
+        $result_['insert_reservationTicket'] = $c_apiGuzzle->postServiceTiketing($apiServiceName,$name,$email,$idKaryawan,$tanggalKedatangan,$ticketOrder);
+        return $result_;
+    }
+
+    private function API_Guzzle_GetPaymentLink($apiServiceName,$orderId)
+    {
+        $c_apiGuzzle = new API_Guzzle();
+        $result_['get_paymentLink'] = $c_apiGuzzle->postGetPaymentLink($apiServiceName,$orderId);
         return $result_;
     }
     // 

@@ -12,6 +12,7 @@ use App\Http\Controllers\KomplementController;
 use App\Http\Controllers\HODController;
 use App\Http\Controllers\OvertimeController;
 
+
 use App\Http\Controllers\Service_Cuti;
 use App\Http\Controllers\Service_Komplemen;
 
@@ -80,6 +81,13 @@ use Illuminate\Support\Facades\Session;
         // get data request overtime
         Route::get('get_request_overtime', 'getRequestOvertime'); 
     });
+
+    Route::controller(KomplementController::class)->group(function () {
+        // get data komplement by ID
+        Route::get('get_request_komplement_ByID', 'getRequestKomplemen'); 
+        // get data request komplement
+        Route::get('get_request_komplement_karyawan', 'getRequestKomplemen'); 
+    });
 // });
 
 // Service LokaHR
@@ -96,6 +104,9 @@ Route::controller(Service_Komplemen::class)->group(function () {
 
     // get data master komplemen karyawan
     Route::get('get_master_komplemen_karyawan', 'getListMasterKomplemen'); 
+
+    // To Reservation Ticket
+    Route::post('update_reservation_ticket', 'updateReservationTicket');
 });
 
 // CronJob
