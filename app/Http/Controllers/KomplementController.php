@@ -7,10 +7,12 @@ use Illuminate\Support\Facades\DB;
 use App\Models\KomplementMst;
 use App\Models\KomplementTrn;
 use App\Models\KomplementTicketOrder;
+use Carbon\Carbon;
+use DateTime;
 
 class KomplementController extends Controller
 {
-    public function insertKomplemenMst($idKomplementMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$qty)
+    public function insertKomplemenMst($idKomplementMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$jmlKomplement,$qty)
     {
         try {
             // cek data
@@ -31,6 +33,7 @@ class KomplementController extends Controller
                     $data->tahun = $tahun; 
                     $data->id_karyawan = $idKaryawan; 
                     $data->tipe_komplement = $tipeKomplement; 
+                    $data->jml_komplement = $jmlKomplement;
                     $data->sisa_komplement = $qty; 
                     $data->date_start = $tahun.'-01-01';
                     $data->date_end = $tahun.'-12-31';
@@ -164,6 +167,75 @@ class KomplementController extends Controller
         }
     }
 
+    public function getKomplemenKaryawanByOrderID($orderId)
+    {
+        try
+        {
+            $data_ = DB::table('komplement_trn')
+            ->select('id_komplemen_trn','id_karyawan','name','email','no_hp','tanggal_pengajuan','tanggal_kedatangan','kode_booking','order_id','ticket_order','qty_total','payment_methods','payment_link','status')
+            ->where('order_id',$orderId);
+            if($data_->exists())
+            {
+                $result = $data_->first();
+            }
+            else
+            {
+                $result = 'Data Komplemen Karyawan By Order ID Tidak Ditemukan';
+            }
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    public function getRequestKomplemenKaryawanComingSoon($idKaryawan)
+    {
+        try
+        {
+            $data_ = DB::table('komplement_trn')
+            ->select('id_komplemen_trn','id_karyawan','name','email','no_hp','tanggal_pengajuan','tanggal_kedatangan','kode_booking','order_id','ticket_order','qty_total','payment_methods','payment_link','status')
+            ->where('id_karyawan',$idKaryawan)
+            ->where('status','1')
+            ->orderBy('tanggal_kedatangan','desc');
+            if($data_->exists())
+            {
+                $data = $data_->get();
+            
+                $data_ = null;
+                foreach($data as $v)
+                {
+                 
+                    // Convert the user-provided date to a Carbon instance
+                    $userDate = Carbon::parse($v->tanggal_kedatangan);
+               
+                    // Get the current date
+                    $currentDate = Carbon::now();
+                
+                    // Check if the user-provided date is greater than the current date
+                    if ($userDate->greaterThan($currentDate) || $userDate->isToday()) {
+                        // The user-provided date is greater than the current date
+                        // Handle the situation accordingly, for example, return an error response
+                        $data_ =  $v->tanggal_kedatangan;
+                    }
+                    else
+                    {
+                        $result = null;
+                    }
+                        $result = $data_;
+                }
+             
+            }
+            else
+            {
+                $result = 'Data Request Komplemen Karyawan Tidak Ditemukan';
+            }
+            return $result;
+        } catch (\Exception $ex) {
+       
+            return $ex;
+        }
+    }
+
     public function getRequestKomplemenTicketOrderKaryawan($idKomplementTrn)
     {
         try
@@ -225,14 +297,14 @@ class KomplementController extends Controller
           
             // Get Jml Cuti Master Periode karyawan
             $jmlKomplementMst_ = DB::table('komplement_mst')
-            ->select('sisa_komplement')
+            ->select('jml_komplement')
             ->where('is_dell','1')
 
             ->where('id_komplement',$idKomplement)
             ->where('id_komplement_mst',$idMst)
             ->where('id_karyawan',$idKaryawan)
             ->first();
-            $jmlKomplementMst = $jmlKomplementMst_->sisa_komplement;
+            $jmlKomplementMst = $jmlKomplementMst_->jml_komplement;
      
             // Get total request komplement Ticket Order Karyawan
             $jmlKomplementTrn_ = DB::table('komplement_ticket_order')
@@ -240,7 +312,6 @@ class KomplementController extends Controller
             ->where('is_dell','1')
             ->where('ticket_id',$idKomplement)
             ->where('id_komplemen_mst',$idMst)
-            ->where('id_komplemen_trn',$idTrn)
             ->first();
 
             $jmlKomplementTrn=$jmlKomplementTrn_->total;
@@ -281,6 +352,7 @@ class KomplementController extends Controller
 
     public function updateReservationTicket($orderID,$kodeBooking,$status)
     {
+    
         try {
             DB::table('komplement_trn')
             ->where('order_id',$orderID)
@@ -288,7 +360,46 @@ class KomplementController extends Controller
                 'kode_booking'=>$kodeBooking,
                 'status'=>$status
             ]);
-        return 'Update Order ID Karyawan Successfuly';
+            $result_['update_reservationTicet'] = 'Update Order ID Karyawan Successfuly';
+            if($status=='3')
+            {
+                // get Data komplement TRN
+                $dataKomplementTrn = DB::table('komplement_trn')
+                ->select('id_komplemen_trn','id_karyawan')
+                ->where('order_id',$orderID)
+                ->first();
+                $idKaryawan = $dataKomplementTrn->id_karyawan;
+                $idKomplementTrn = $dataKomplementTrn->id_komplemen_trn;
+             
+                // get Data Komplement Ticket Order
+                $dataKomplementTicketOrder = DB::table('komplement_ticket_order')
+                ->select('id_komplemen_mst','ticket_id')
+                ->where('id_komplemen_trn',$idKomplementTrn)
+                ->get();
+                $result_['disable_ticketOrder'] = $this->disableTicketOrder($idKomplementTrn);
+                foreach($dataKomplementTicketOrder as $v)
+                {
+                    $idKomplementMst = $v->id_komplemen_mst;
+                    $idKomplement = $v->ticket_id;
+                    $result_['update_master_komplement_karyawan'] = $this->updateMasterKomplementKaryawan($idKaryawan,$idKomplementMst,$idKomplementTrn,$idKomplement);
+                }
+            }
+        return $result_;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    private function disableTicketOrder($idKomplementTrn)
+    {
+        try
+        {   
+            DB::table('komplement_ticket_order')
+            ->where('id_komplemen_trn',$idKomplementTrn)
+            ->update([
+                'is_dell'=> 3
+            ]);
+            return 'disable komplement ticket Order Successfuly';
         } catch (\Exception $ex) {
             return $ex;
         }

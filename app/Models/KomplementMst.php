@@ -14,6 +14,7 @@ class KomplementMst extends Model
         'tahun',
         'id_karyawan',
         'tipe_komplement',
+        'jml_komplement',
         'sisa_komplement',
         'is_dell'
     ];

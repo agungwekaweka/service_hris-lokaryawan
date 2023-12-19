@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\CutiMst;
 use App\Models\CutiTrn;
 use App\Models\CutiApproveHistory;
+use App\Models\CutiLampiran;
 use Carbon\Carbon;
 use DateTime;
 
@@ -185,6 +186,29 @@ class CutiController extends Controller
             $data->id_karyawan_approve = $idKaryawanApprove; 
             $data->tgl_approve = $tglApprove; 
             $data->note = $note; 
+            $data->save();
+            
+            return 'data berhasil ditambahkan';
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    public function insertCutiLampiran($idCutiMst_,$idCutiTrn_,$tahun_,$url_)
+    {
+        // declare variable
+       $idCutiMst = $idCutiMst_;
+       $idCutiTrn = $idCutiTrn_;
+       $tahun = $tahun_;
+       $url = $url_;
+
+        try {
+            // cek data
+            $data = new CutiLampiran();
+            $data->id_cuti_mst = $idCutiMst; 
+            $data->id_cuti_trn = $idCutiTrn; 
+            $data->tahun = $tahun; 
+            $data->url = $url; 
             $data->save();
             
             return 'data berhasil ditambahkan';
@@ -447,13 +471,27 @@ class CutiController extends Controller
         $idCutiTrn = $idCutiTrn_;
       
         $data_ = DB::table('cuti_approve_history')
-        ->select('id_cuti_trn','status','telephone','id_karyawan_approve','tgl_approve','note')
-        ->where('id_cuti_trn',$idCutiTrn);
+        ->select('cuti_approve_history.id_cuti_trn',
+        'cuti_approve_history.status',
+        'cuti_approve_history.telephone',
+        'cuti_approve_history.id_karyawan_approve',
+        'users.name',
+        'users.grade',
+        'cuti_approve_history.tgl_approve',
+        'cuti_approve_history.note')
+        ->join('users','users.id_karyawan','cuti_approve_history.id_karyawan_approve')
+        ->where('id_cuti_trn',$idCutiTrn)
+        ->orderBy('cuti_approve_history.id','asc');
         if($data_->exists())
         {
             if($typeHistory!='')
             {
                 $data_->where('status',$typeHistory);
+            }
+            if($data_->count()==0)
+            {
+                $data=null;
+                return $data;
             }
 
             $data = $data_->get();
@@ -476,7 +514,7 @@ class CutiController extends Controller
         $data_ = DB::table('cuti_lampiran')
         ->select('id_cuti_mst',
         'id_cuti_trn','tahun',
-        DB::raw("CONCAT('".$urlServer."',url) as url"))
+        DB::raw("CONCAT('".$urlServer."storage/',url) as url"))
         ->where('id_cuti_trn',$idCutiTrn);
         if($data_->exists())
         {

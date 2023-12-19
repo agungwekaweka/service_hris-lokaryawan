@@ -8,8 +8,8 @@ class API_Guzzle extends Controller
 {
     private function urlLokaHR()
     {
-        $url= 'https://lokahr.salokapark.app/api/';
-        // $url = 'http://192.168.0.75:8091/api/';
+        // $url= 'https://lokahr.salokapark.app/api/';
+        $url = 'http://192.168.0.75:8091/api/';
         return $url;
     }
  
@@ -25,16 +25,18 @@ class API_Guzzle extends Controller
     public function urlLokaryawan()
     {
         // server
-        // $url = "https://servicelokaryawan.salokapark.app/";
+        $url = "https://servicelokaryawan.salokapark.app/";
         // lokal
-        $url = 'http://192.168.0.75:8099/';
+        // $url = 'http://192.168.0.75:8099/';
         return $url;
     }
 
     public function urlTiketing()
     {
         // server
-        $url = 'http://10.10.10.35:8097/api/';
+        $url = 'http://103.164.114.22:8097/api/';
+        // local
+        // $url = 'http://10.10.10.35:8097/api/';
         return $url;
     }
 
@@ -119,7 +121,7 @@ class API_Guzzle extends Controller
 
             $url = $this->urlTiketingLocal().$var;
             $myBody['name'] = $name;
-            $myBody['email'] = $name;
+            $myBody['email'] = $email;
             $myBody['employee_id'] = $employee_id;
             $myBody['bookingDate'] = $bookingDate;
             $myBody['ticketOrder']= $ticketOrder;

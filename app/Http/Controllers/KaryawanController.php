@@ -75,9 +75,11 @@ class KaryawanController extends Controller
                     // get master komplement
                     $c_komplement = new KomplementController();
                     $lstMstKomplemen = $c_komplement->getTypeMasterKomplemen();
+             
                     foreach($lstMstKomplemen as $v)
                     {
-                        $idKomplement = $v->ticket_id;
+                    
+                        $idKomplement = $v->id_komplement;
                         $tipeKomplement = $v->komplement;
                         $qty = $v->qty;
 
@@ -85,7 +87,7 @@ class KaryawanController extends Controller
                         $idKomplemenMst = $c_generateID->getIDKomplemenMst($idKomplement);
 
                         // insert Master Komplemen
-                        $result_['karyawn_active'][2] = $this->insertKomplementMst($idKomplemenMst,$idKomplement, $tahun,$idAbsen,$tipeKomplement,$qty);
+                        $result_['karyawn_active'][2] = $this->insertKomplementMst($idKomplemenMst,$idKomplement, $tahun,$idAbsen,$tipeKomplement,$qty,$qty);
                     }     
                 }
 
@@ -135,7 +137,7 @@ class KaryawanController extends Controller
             // insert cuti
             $tahun = Carbon::now()->format('Y');
             $idPeriode = '-';
-            $tglPengajuan = Carbon::now()->format('Y-m-d h:m:s');
+            $tglPengajuan = Carbon::now()->format('Y-m-d H:i:s');
             // status 0 = pending HOD, 1= approve, 2=reject
             $status = '0';
           
@@ -308,6 +310,13 @@ class KaryawanController extends Controller
         return $result_;
     }
 
+    private function insertCutiLampiran($idCutiMst,$idCutiTrn,$tahun,$url)
+    {
+        $c_cuti = new CutiController();
+        $result_['insert_lampiran'] = $c_cuti->insertCutiLampiran($idCutiMst,$idCutiTrn,$tahun,$url);
+        return $result_;
+    }
+
     private function updateRequestCuti($id,$status,$note,$reff,$tglApprove)
     {
         $c_cuti = new CutiController();
@@ -353,7 +362,7 @@ class KaryawanController extends Controller
             // insert cuti
             $tahun = Carbon::now()->format('Y');
             $idPeriode = '-';
-            $tglPengajuan = Carbon::now()->format('Y-m-d h:m:s');
+            $tglPengajuan = Carbon::now()->format('Y-m-d H:i:s');
             // status 0 = pending HOD, 1= approve, 2=reject
             $status = '0';
 
@@ -392,14 +401,15 @@ class KaryawanController extends Controller
                 $c_generateID = new GenerateIDController();
                 $idTrn = $c_generateID->getIDCutiTrn($idCuti);
                 $result_['insert_cutiTRN'] = $this->insertCutiTRN($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$sisaCuti,$keterangan,$tglPengajuan,$status);
-           
+                
                 // insert Image
                 if($lampiranFile!='') {
                     // call class upload Image
                     $c_uploadImage = new ClassUploadImageClass();
                     $urlPathImgLampiran = $c_uploadImage->processImageLampiran($request->file('lampiran_file'),$idKaryawan,$idMst,$idTrn);
-         
+                   
                     // insert 
+                    $result_['insert_lampiran'] = $this->insertCutiLampiran($idMst,$idTrn,$tahun,$urlPathImgLampiran);
                 } 
             }
             else
@@ -430,7 +440,8 @@ class KaryawanController extends Controller
         try {
             // insert cuti
             $tahun = Carbon::now()->format('Y');
-            $tglPengajuan = Carbon::now()->format('Y-m-d h:m:s');
+            $tglPengajuan = Carbon::now()->format('Y-m-d H:i:s');
+
             // convert to json decode input tiket
             $listTiket = json_decode($tiket);
      
@@ -512,11 +523,11 @@ class KaryawanController extends Controller
                         $apiServiceName='get-xendit-token-employee';
                         $result_['id_komplement_trn'] =$idKomplemenTrn;
                         $result_['payment_link'] = $this->API_Guzzle_GetPaymentLink($apiServiceName,$orderID);
-
+                       
                         $kodeBooking='-';
                         $status = '2';
                     
-                        $paymentLink = $result_['payment_link']["get_paymentLink"]->payment_link;
+                        $paymentLink = $result_['payment_link']['get_paymentLink']->payment_link;
                         // update orderIDBooking Ticket
                         $result_['update_orderID'] = $this->updateOrderIDBooking($idKomplemenTrn,$idKaryawan,$orderID,$kodeBooking,$paymentLink,$status);
                     }
@@ -592,10 +603,10 @@ class KaryawanController extends Controller
         return 'success';
     }
 
-    private function insertKomplementMst($idKomplementMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement)
+    private function insertKomplementMst($idKomplementMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$jmlKomplement,$sisaKomplement)
     {
         $c_komplement = new KomplementController();
-        $result_['insert_KomplementDB'] = $c_komplement->insertKomplemenMst($idKomplementMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$sisaKomplement);
+        $result_['insert_KomplementDB'] = $c_komplement->insertKomplemenMst($idKomplementMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$jmlKomplement,$sisaKomplement);
         return $result_;
     }
 
@@ -648,7 +659,7 @@ class KaryawanController extends Controller
         try {
             // insert cuti
             $tahun = Carbon::now()->format('Y');
-            $tglPengajuan = Carbon::now()->format('Y-m-d h:m:s');
+            $tglPengajuan = Carbon::now()->format('Y-m-d H:i:s');
             // 0=pending; 1=approve; 2=reject
             $status = '0';
 

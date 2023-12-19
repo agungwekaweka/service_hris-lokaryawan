@@ -136,7 +136,12 @@ class OvertimeController extends Controller
         $idOvertime = $idOvertime_;
       
         $data_ = DB::table('overtime_history')
-        ->select('id_overtime','status','telephone','id_karyawan_approve','tgl_approve','note')
+        ->select('overtime_history.id_overtime','overtime_history.status','overtime_history.telephone','overtime_history.id_karyawan_approve',
+        'users.name',
+        'users.grade',
+        'overtime_history.tgl_approve',
+        'overtime_history.note')
+        ->join('users','users.id_karyawan','overtime_history.id_karyawan_approve')
         ->where('id_overtime',$idOvertime);
     
         if($data_->exists())

@@ -90,7 +90,6 @@ class Service_Komplemen extends Controller
          }
      }
 
-     // Get List Cuti Karyawan
      public function getListMasterKomplemen(Request $request)
      {
         $tahun = $request->tahun;
@@ -148,6 +147,26 @@ class Service_Komplemen extends Controller
          }
      }
 
+     public function getRequestKomplementComingSoon(Request $request)
+     {
+        $idKaryawan = $request->id_karyawan;
+         try
+         {
+            $c_komplementController = new KomplementController();
+
+            $data = $c_komplementController->getRequestKomplemenKaryawanComingSoon($idKaryawan);
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Get Data Komplement ComingSoon Successfuly',
+                'data' => $data
+            ]);
+
+            return $result;
+         } catch (\Exception $ex) {
+            return $ex;
+         }
+     }
+
      public function updateReservationTicket(Request $request)
      {
         $orderID = $request->order_id;
@@ -155,11 +174,32 @@ class Service_Komplemen extends Controller
         $status = $request->status;
         try
         {
+            // update reservation Ticket
             $c_komplementController = new KomplementController();
-            $reult_ = $c_komplementController->updateReservationTicket($orderID,$kodeBooking,$status);
+            $result_['update_reservationTicket'] = $c_komplementController->updateReservationTicket($orderID,$kodeBooking,$status);
+
+            $c_komplementController = new KomplementController();
+            $dataKomplement = $c_komplementController->getKomplemenKaryawanByOrderID($orderID);
+            $idKomplement = $dataKomplement->id_komplemen_trn;
+            $idKaryawan = $dataKomplement->id_karyawan;
+
+            // sent whatsapp 
+            $c_sentWhatsappController = new SentWhatsappController();
+            if($status =='3')
+            {
+                // expeied
+                $result_['sent_whatsapp'] = $c_sentWhatsappController->sentWhatsappErrorTicket($idKomplement,$idKaryawan,'Expired Ticket');
+            }
+            elseif($status =='1')
+            {
+                // settlement
+                $result_['sent_whatsapp'] = $c_sentWhatsappController->sentWhatsappKodeBookingTicket($idKomplement,$idKaryawan);
+            }
+           
             $result=response()->json([
                 'status' => 'success',
                 'message' => 'Update Reservation Ticket Successfuly',
+                'req' => $result_
             ]);
             return $result;
         } catch (\Exception $ex) {

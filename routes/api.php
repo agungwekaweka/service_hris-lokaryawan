@@ -99,6 +99,9 @@ Route::controller(Service_Cuti::class)->group(function () {
 });
 
 Route::controller(Service_Komplemen::class)->group(function () {
+    // get data komplement Coming Soon 
+    Route::get('get_request_komplement_comingSoon', 'getRequestKomplementComingSoon'); 
+    
     // get data master list Price Komplemen
     Route::get('get_list_price_master_komplement', 'getListPriceMasterKomplemenByTanggal'); 
 

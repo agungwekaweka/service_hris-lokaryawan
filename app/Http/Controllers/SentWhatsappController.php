@@ -250,6 +250,37 @@ class SentWhatsappController extends Controller
         return $result_;
     }
 
+    public function sentWhatsappErrorTicket($idKomplement,$idKaryawan_,$status)
+    {
+        // get Data User Recipient
+        $c_users = new UsersController();
+        $dtUserRecipient = $c_users->getData($idKaryawan_);
+        $namaPenerima = $dtUserRecipient->name;
+        $telephone = $dtUserRecipient->no_telephone;
+
+        // get Data Komplement
+        $c_komplementController = new KomplementController();
+        $dtKomplement = $c_komplementController->getRequestKomplemenKaryawan($idKaryawan_,$idKomplement);
+  
+        $tanggalPengajuan = $dtKomplement[0]->tanggal_pengajuan;
+        $c_toolsDateClass = new ToolsDateClass();
+        $tanggalKedatangan = $c_toolsDateClass->convertTanggalDefault($dtKomplement[0]->tanggal_kedatangan);
+        $totalTiket = $dtKomplement[0]->qty_total;
+        $kodeBooking = $dtKomplement[0]->kode_booking;
+
+        // declare variable
+        $message = "Dear Bapak/Ibu *".$namaPenerima."* \n".
+        "Pengajuan Tiket Komplement nomor : ".$idKomplement." telah dibuat dengan detail sbb:"." \n\n".
+        "Tanggal Pengajuan : \n*".$tanggalPengajuan."* \n\n".
+        "Tanggal Kedatangan : \n*".$tanggalKedatangan."* \n\n".
+        "Total Tiket : \n*".$totalTiket."* \n\n".
+        "Status : \n*".$status ."* \n\n".
+        "Silahkan Cek Kembali Pembayaran Anda, Matur Nuwum."." \n\n"."[sent by Bot Loka]";
+
+        $result_ = $this->sentWA($telephone,$message);
+        return $result_;
+    }
+
     // ---------------------------------------------------------
     private function sentWA($telephone,$message)
     {
