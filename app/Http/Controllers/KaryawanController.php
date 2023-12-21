@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +18,7 @@ class KaryawanController extends Controller
             $typeService = 'get_all_karyawan';
             $json_data = new API_Guzzle();
             $data_jsonDecode = $json_data->getServiceLokaHR($typeService);
+        
             // cek status API
             if($data_jsonDecode->status=='success')
             {
@@ -26,7 +26,6 @@ class KaryawanController extends Controller
                 $lstEmpActive = $data_jsonDecode->karyawanActive;
                 foreach($lstEmpActive as $v)
                 {
-                  
                     $idDepartemen = $v->id_departemen;
                     $departemen = $v->departemen;
                     $idSubDepartemen = $v->id_departemen_sub;
@@ -93,15 +92,16 @@ class KaryawanController extends Controller
 
                 // karyawan Non Acvie
                 $lstEmpNonActive = $data_jsonDecode->karyawanNonActive;
+
                 foreach($lstEmpNonActive as $v)
                 {
                     $username = $v->username;
                     $idAbsen = $v->id_absen;
                     $name = $v->name;
                     $password = $v->password;
-                 
+
                     // disable Master Cuti
-                    $result_['karyawn_nonActive'] = $this->disableCuti($idAbsen);
+                    $result_['karyawn_nonActive'] = $this->disableDataKaryawan($idAbsen);
                 }
                 
                 $result=response()->json([
@@ -324,10 +324,13 @@ class KaryawanController extends Controller
         return $result_;
     }
 
-    private function disableCuti($idAbsen)
+    private function disableDataKaryawan($idAbsen)
     {
-        $c_cuti = new CutiController();
-        $result_['disable_MasterCutiDB'] = $c_cuti->disableCutiMst($idAbsen);
+        $c_users = new Users();
+        $result_['disable_MasterUsers'] = $c_users->disableUsers($idAbsen);
+
+        // $c_cuti = new CutiController();
+        // $result_['disable_MasterCutiDB'] = $c_cuti->disableCutiMst($idAbsen);
         return $result_;
     }
 

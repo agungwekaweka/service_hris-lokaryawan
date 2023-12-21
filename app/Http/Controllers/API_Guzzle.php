@@ -8,8 +8,8 @@ class API_Guzzle extends Controller
 {
     private function urlLokaHR()
     {
-        // $url= 'https://lokahr.salokapark.app/api/';
-        $url = 'http://192.168.0.75:8091/api/';
+        $url= 'https://lokahr.salokapark.app/api/';
+        // $url = 'http://192.168.0.75:8091/api/';
         return $url;
     }
  

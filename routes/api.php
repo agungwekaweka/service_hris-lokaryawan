@@ -110,6 +110,9 @@ Route::controller(Service_Komplemen::class)->group(function () {
 
     // To Reservation Ticket
     Route::post('update_reservation_ticket', 'updateReservationTicket');
+    
+    // import Data Master Komplement
+    Route::post('import_data_master_komplement', 'importDataMasterKomplement');
 });
 
 // CronJob

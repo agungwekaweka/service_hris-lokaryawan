@@ -177,6 +177,31 @@ class UsersController extends Controller
         }
     }
 
+    public function disableUsers($idKaryawan)
+    {
+        try {
+            // cek data
+            $dt = DB::table('users')
+            ->select('id_karyawan')
+            ->where('id_karyawan',$idKaryawan);
+            if($dt->exists())
+            {
+                DB::table('users')
+                ->where('id_karyawan','=',$idKaryawan)
+                ->update([
+                    'is_dell'=>'0'
+                ]);
+            }
+            else
+            {
+                return 'data tidak ditemukan';
+            }
+            return 'success';
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
     private function delete($idKaryawan_)
     {
         try
