@@ -81,13 +81,6 @@ use Illuminate\Support\Facades\Session;
         // get data request overtime
         Route::get('get_request_overtime', 'getRequestOvertime'); 
     });
-
-    Route::controller(KomplementController::class)->group(function () {
-        // get data komplement by ID
-        Route::get('get_request_komplement_ByID', 'getRequestKomplemen'); 
-        // get data request komplement
-        Route::get('get_request_komplement_karyawan', 'getRequestKomplemen'); 
-    });
 // });
 
 // Service LokaHR
@@ -96,6 +89,10 @@ Route::controller(Service_Cuti::class)->group(function () {
     Route::get('get_master_cuti_karyawan', 'getListMasterCuti'); 
     // get data master cuti karyawan
     Route::get('get_request_cuti_karyawan', 'getListRequestCuti'); 
+
+    // CRON
+    // Update Master Cuti Tahunan == Cron update:cutiTahunan
+    Route::get('update_master_cutiTahunan', 'updateMasterCutiTahunan'); 
 });
 
 Route::controller(Service_Komplemen::class)->group(function () {
@@ -108,11 +105,21 @@ Route::controller(Service_Komplemen::class)->group(function () {
     // get data master komplemen karyawan
     Route::get('get_master_komplemen_karyawan', 'getListMasterKomplemen'); 
 
+    // get data komplement by ID
+    Route::get('get_request_komplement_ByID', 'getRequestKomplemen'); 
+
+    // get data request komplement
+    Route::get('get_request_komplement_karyawan', 'getRequestKomplemen'); 
+
     // To Reservation Ticket
     Route::post('update_reservation_ticket', 'updateReservationTicket');
     
     // import Data Master Komplement
     Route::post('import_data_master_komplement', 'importDataMasterKomplement');
+
+    // CRON
+    // Update Master Komplement == Cron update:komplement
+    Route::get('update_master_komplement', 'updateMasterKomplement'); 
 });
 
 // CronJob

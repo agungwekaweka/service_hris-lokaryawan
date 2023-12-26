@@ -19,9 +19,13 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('update:masaBerlakuCuti')
-        ->dailyAt('00:05');
         $schedule->command('insert:karyawan')
+        ->dailyAt('00:01');
+
+        $schedule->command('update:komplement')
+        ->dailyAt('00:05');
+
+        $schedule->command('update:masaBerlakuCuti')
         ->dailyAt('00:10');
     }
 

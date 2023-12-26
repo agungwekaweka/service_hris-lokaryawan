@@ -15,8 +15,10 @@ class API_Guzzle extends Controller
  
     private function urlWebWhatsapp()
     {
-        // server
-        $url = "103.164.114.22:8200/SendMessage";
+        // server Foonte 
+        $url = "https://api.fonnte.com/send";
+        // server Saloka
+        // $url = "103.164.114.22:8200/SendMessage";
         // lokal
         // $url = "10.10.10.28:8200/SendMessage";
         return $url;
@@ -73,15 +75,19 @@ class API_Guzzle extends Controller
             $client = new \GuzzleHttp\Client();
 
             $url = $this->urlWebWhatsapp();
-            $myBody['apikey'] = "123456";
-            $myBody['recipients']=[
-                $telephone
-            ];
-            $myBody['message']=$message;
-            $request = $client->post($url,  ['form_params'=>$myBody]);
-            $response = $request->getBody();
-            $jsonDecode = json_decode($response);
-            return $jsonDecode;
+
+            $response = $client->request('POST', $this->urlWebWhatsapp(), [
+                'headers' => [
+                    'Authorization' => '+PkfUaYYGfR1+gRCx9no',
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => [
+                    'target' => $telephone,
+                    'message' => $message
+                ],
+            ]);
+            $data = json_decode($response->getBody(), true);
+            return $data;
         } catch (\Exception $ex) {
             return $ex;
         }

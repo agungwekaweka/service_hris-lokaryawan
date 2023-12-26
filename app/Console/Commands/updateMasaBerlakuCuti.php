@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\CutiController;
 use App\Http\Controllers\CronJob;
 use App\Http\Controllers\KaryawanController;
+use App\Http\Controllers\SentWhatsappController;
 
 use Carbon\Carbon;
 use DateTime;
@@ -80,6 +81,10 @@ class updateMasaBerlakuCuti extends Command
                     $c_class = $c_class->insertLog($_requestValue);
                 }
             }
+
+            // sent to developer
+            $c_sentWhatsappController = new SentWhatsappController();
+            $c_sentWhatsappController->sentWAtoDeveloper(json_encode($_requestValue));
             
             return 'Cron Job Update Masa Berlaku Cuti Success';
         } catch (\Exception $ex) {
@@ -90,6 +95,10 @@ class updateMasaBerlakuCuti extends Command
         
             $c_class = new CronJob();
             $c_class = $c_class->insertLog($_requestValue);
+
+            // sent to developer
+            $c_sentWhatsappController = new SentWhatsappController();
+            $c_sentWhatsappController->sentWAtoDeveloper(json_encode($_requestValue));
         }
     }
 }

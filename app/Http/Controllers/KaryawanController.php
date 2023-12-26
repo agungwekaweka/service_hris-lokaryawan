@@ -54,40 +54,40 @@ class KaryawanController extends Controller
                     // insert table user
                     $result_['karyawn_active'][0] = $this->insertUser($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen,$idGrade, $grade, $name,$noTelephone, $idAbsen, $username, $password, $isDell,$doj,$dob);
               
-                    $tahun = Carbon::now()->format('Y');
+                    // $tahun = Carbon::now()->format('Y');
                     // get tipe Cuti
-                    $c_cuti = new CutiController();
-                    $lstMstCuti = $c_cuti->getTypeMasterCuti();
-                    foreach($lstMstCuti as $v)
-                    {
-                        $idCuti = $v->id_cuti;
-                        $tipeCuti = $v->tipe_cuti;
-                        $cuti = $v->cuti;
-                        $jmlHari = $v->jml_hari;
-                        $masaBerlaku = $v->masa_berlaku;
-                        $tipeMasaBerlaku = $v->tipe_masa_berlaku;
+                    // $c_cuti = new CutiController();
+                    // $lstMstCuti = $c_cuti->getTypeMasterCuti();
+                    // foreach($lstMstCuti as $v)
+                    // {
+                    //     $idCuti = $v->id_cuti;
+                    //     $tipeCuti = $v->tipe_cuti;
+                    //     $cuti = $v->cuti;
+                    //     $jmlHari = $v->jml_hari;
+                    //     $masaBerlaku = $v->masa_berlaku;
+                    //     $tipeMasaBerlaku = $v->tipe_masa_berlaku;
                      
-                        // insert Master Cuti
-                       $result_['karyawn_active'][1]= $this->insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$jmlHari,$tipeMasaBerlaku,$masaBerlaku,$doj);
-                    }
+                    //     // insert Master Cuti
+                    //    $result_['karyawn_active'][1]= $this->insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$jmlHari,$tipeMasaBerlaku,$masaBerlaku,$doj);
+                    // }
                     
                     // get master komplement
-                    $c_komplement = new KomplementController();
-                    $lstMstKomplemen = $c_komplement->getTypeMasterKomplemen();
+                    // $c_komplement = new KomplementController();
+                    // $lstMstKomplemen = $c_komplement->getTypeMasterKomplemen();
              
-                    foreach($lstMstKomplemen as $v)
-                    {
+                    // foreach($lstMstKomplemen as $v)
+                    // {
                     
-                        $idKomplement = $v->id_komplement;
-                        $tipeKomplement = $v->komplement;
-                        $qty = $v->qty;
+                    //     $idKomplement = $v->id_komplement;
+                    //     $tipeKomplement = $v->komplement;
+                    //     $qty = $v->qty;
 
-                        $c_generateID = new GenerateIDController();
-                        $idKomplemenMst = $c_generateID->getIDKomplemenMst($idKomplement);
+                    //     $c_generateID = new GenerateIDController();
+                    //     $idKomplemenMst = $c_generateID->getIDKomplemenMst($idKomplement);
 
-                        // insert Master Komplemen
-                        $result_['karyawn_active'][2] = $this->insertKomplementMst($idKomplemenMst,$idKomplement, $tahun,$idAbsen,$tipeKomplement,$qty,$qty);
-                    }     
+                    //     // insert Master Komplemen
+                    //     $result_['karyawn_active'][2] = $this->insertKomplementMst($idKomplemenMst,$idKomplement, $tahun,$idAbsen,$tipeKomplement,$qty,$qty);
+                    // }     
                 }
 
                 // karyawan Non Acvie
@@ -606,6 +606,7 @@ class KaryawanController extends Controller
         return 'success';
     }
 
+    // note******
     private function insertKomplementMst($idKomplementMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$jmlKomplement,$sisaKomplement)
     {
         $c_komplement = new KomplementController();

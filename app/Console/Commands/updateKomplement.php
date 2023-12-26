@@ -4,26 +4,29 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
-use App\Http\Controllers\KaryawanController;
+
 use App\Http\Controllers\CronJob;
+use App\Http\Controllers\Service_Komplemen;
 use App\Http\Controllers\SentWhatsappController;
 
-class inserKaryawan extends Command
+use Carbon\Carbon;
+use DateTime;
+
+class updateKomplement extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'insert:karyawan';
+    protected $signature = 'update:komplement';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Menambahkan Data Master Komplement untuk Karyawan yg sudah berhak mendapatkan';
 
     /**
      * Execute the console command.
@@ -34,14 +37,16 @@ class inserKaryawan extends Command
     {
         try {
             // getData Karyawan validity Periode cuti expied
-            $c_karyawan = new KaryawanController();
-            $result['insert_karyawan'] = $c_karyawan->insertKaryawan();
-
+            $c_serviceKomplement = new Service_Komplemen();
+            $result['update_masterKomplement'] = $c_serviceKomplement->updateMasterKomplement();
+         
             // insert history
-            $_requestValue['class'] = 'InsertKaryawan';
+            $_requestValue['apps'] = 'Service_HRIS-Lokaryawan';
+            $_requestValue['service'] = 'CRON JOB';
+            $_requestValue['class'] = 'updateKomplement';
             $_requestValue['status'] ='Success';
             $_requestValue['report'] = json_encode($result);
-        
+            
             $c_class = new CronJob();
             $c_class = $c_class->insertLog($_requestValue);
             
@@ -49,10 +54,12 @@ class inserKaryawan extends Command
             $c_sentWhatsappController = new SentWhatsappController();
             $c_sentWhatsappController->sentWAtoDeveloper(json_encode($_requestValue));
 
-            return 'Cron Job Menambahkan Karyawan Baru Success';
+            return 'Cron Job Update Komplement Success';
         } catch (\Exception $ex) {
             // insert history
-            $_requestValue['class'] = 'InsertKaryawan';
+            $_requestValue['apps'] = 'Service_HRIS-Lokaryawan';
+            $_requestValue['service'] = 'CRON JOB';
+            $_requestValue['class'] = 'updateKomplement';
             $_requestValue['status'] ='failed';
             $_requestValue['report'] = json_encode($ex);
         
@@ -62,6 +69,8 @@ class inserKaryawan extends Command
             // sent to developer
             $c_sentWhatsappController = new SentWhatsappController();
             $c_sentWhatsappController->sentWAtoDeveloper(json_encode($_requestValue));
+
+            return 'Failed Cron Job';
         }
     }
 }

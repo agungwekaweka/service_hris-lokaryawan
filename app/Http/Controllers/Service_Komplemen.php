@@ -101,21 +101,18 @@ class Service_Komplemen extends Controller
          {
              $data_ = DB::table('komplement_mst')
              ->select(
+            'users.is_dell as status',
              'users.departemen',
              'users.sub_departemen',
              'users.grade',
              'users.name',
              'komplement_mst.id_karyawan','komplement_mst.tahun',
-             DB::raw("(select tipe_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='KM001' limit 1) as tipe_komplement_gratis"),
-             DB::raw("(select sisa_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='KM001' limit 1) as sisa_komplement_gratis"),
-             DB::raw("(select date_start from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='KM001' limit 1) as date_start_gratis"),
-             DB::raw("(select date_end from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='KM001' limit 1) as date_expied_gratis"),
-
-             DB::raw("(select tipe_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='KM002' limit 1) as tipe_komplement_bayar"),
-             DB::raw("(select sisa_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='KM002' limit 1) as sisa_komplement_bayar"),
-             DB::raw("(select date_start from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='KM002' limit 1) as date_start_bayar"),
-             DB::raw("(select date_end from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='KM002' limit 1) as date_expied_bayar")
-                         
+             DB::raw("(select tipe_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='40' limit 1) as tipe_komplement_gratis"),
+             DB::raw("(select sisa_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='40' limit 1) as sisa_komplement_gratis"),
+             DB::raw("(select tipe_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='288' limit 1) as tipe_komplement_bayar"),
+             DB::raw("(select sisa_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='288' limit 1) as sisa_komplement_bayar"),
+             DB::raw("(select date_start from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='40' limit 1) as date_start"),
+             DB::raw("(select date_end from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='40' limit 1) as date_end") 
              )
              ->join('users','users.id_karyawan','komplement_mst.id_karyawan')
              ->where('komplement_mst.is_dell','1');
@@ -149,14 +146,41 @@ class Service_Komplemen extends Controller
          }
      }
 
+    public function getRequestKomplemen(Request $request)
+    {
+        $idKaryawan = $request->id_karyawan;
+        $idKomplemenTrn = $request->id_komplement_trn;
+        try
+        {
+            $c_komplementController = new KomplementController();
+            $data = $c_komplementController->getRequestKomplemenKaryawan($idKaryawan,$idKomplemenTrn);
+            $dataTicketOrder = null;
+            if($idKomplemenTrn!='')
+            {
+                $c_komplementController = new KomplementController();
+                $dataTicketOrder = $c_komplementController->getRequestKomplemenTicketOrderKaryawan($idKomplemenTrn);
+            }
+          
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Get Data Request Komplement Karyawan Successfuly',
+                'data' => $data,
+                'ticket_order' => $dataTicketOrder
+            ]);
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
      public function getRequestKomplementComingSoon(Request $request)
      {
         $idKaryawan = $request->id_karyawan;
          try
          {
             $c_komplementController = new KomplementController();
-
             $data = $c_komplementController->getRequestKomplemenKaryawanComingSoon($idKaryawan);
+
             $result=response()->json([
                 'status' => 'success',
                 'message' => 'Get Data Komplement ComingSoon Successfuly',
@@ -165,6 +189,55 @@ class Service_Komplemen extends Controller
 
             return $result;
          } catch (\Exception $ex) {
+            return $ex;
+         }
+     }
+
+     //  menambahkan master komplemen karyawan yg sudah memenuhi syarat
+     public function updateMasterKomplement()
+     {
+        try
+        {
+             // get service API
+             $typeService = 'get_karyawan_status_komplement';
+             $json_data = new API_Guzzle();
+             $data_jsonDecode = $json_data->getServiceLokaHR($typeService);
+            // cek status API
+            if($data_jsonDecode->status=='success')
+            {
+                // komplement Active
+                $lstKomplementActive = $data_jsonDecode->komplementActive;
+                
+                foreach($lstKomplementActive as $x)
+                {
+                    // fill data
+                    $idKaryawan = $x->id_absen;
+                    $masaKerja = $x->masa_kerja;
+
+                    // get master komplement
+                    $c_komplement = new KomplementController();
+                    $lstMstKomplemen = $c_komplement->getTypeMasterKomplemen();
+                    $tahun = Carbon::now()->format('Y');
+                    foreach($lstMstKomplemen as $v)
+                    {
+                        $idKomplement = $v->id_komplement;
+                        $tipeKomplement = $v->komplement;
+                        $qty = $v->qty;
+
+                        $c_generateID = new GenerateIDController();
+                        $idKomplemenMst = $c_generateID->getIDKomplemenMst($idKomplement);
+                     
+                        $c_komplement = new KomplementController();
+                        $result_['insert_KomplementDB'] = $c_komplement->insertKomplemenMst($idKomplemenMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$qty,$qty);
+                    }   
+                }
+            }
+            else
+            {
+                $result_['error_service'] ='getServiceLokaHR';
+            }
+            return $result_;
+        } catch (\Exception $ex) {
             return $ex;
          }
      }

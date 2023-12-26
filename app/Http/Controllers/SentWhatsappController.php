@@ -289,6 +289,14 @@ class SentWhatsappController extends Controller
         return $result_;
     }
 
+    public function sentWAtoDeveloper($message)
+    {
+        // sent to developer
+        $telephone ='6285941304991';
+        $c_apiGuzzle = new API_Guzzle();
+        $result_ = $c_apiGuzzle->getServiceWhatsapp($telephone,$message);
+    }
+
     private function convertTanggal($jsonTanggal)
     {
         $jsonDecode = json_decode($jsonTanggal);

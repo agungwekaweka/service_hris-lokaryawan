@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use GuzzleHttp\Client;
+use Carbon\Carbon;
 
 class Service_Cuti extends Controller
 {
@@ -145,5 +147,66 @@ class Service_Cuti extends Controller
               return $ex;
           }
       }
+
+    //  menambahkan master Cuti Tahunan karyawan yg sudah memenuhi syarat
+     public function updateMasterCutiTahunan()
+     {
+        try
+        {
+            $c_cutiController = new CutiController();
+            $result['disable_cutiTrn'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied();
+            dd($result);
+             // get service API
+             $typeService = 'get_karyawan_status_cuti';
+             $json_data = new API_Guzzle();
+             $data_jsonDecode = $json_data->getServiceLokaHR($typeService);
+         
+            // cek status API
+            if($data_jsonDecode->status=='success')
+            {
+                // Karyawan Active
+                $lstCutiTahunanActive = $data_jsonDecode->CutiActive;
+           
+                foreach($lstCutiTahunanActive as $x)
+                {
+                    // fill data
+                    $idKaryawan = $x->id_absen;
+                    $masaKerja = $x->masa_kerja;
+
+                    $tahun = Carbon::now()->format('Y');
+                    // get tipe Cuti
+                    $c_cuti = new CutiController();
+                    $lstMstCuti = $c_cuti->getTypeMasterCuti();
+                    $i=1;
+                    foreach($lstMstCuti as $v)
+                    {
+                        $idCuti = $v->id_cuti;
+                        $tipeCuti = $v->tipe_cuti;
+                        $cuti = $v->cuti;
+                        $jmlHari = $v->jml_hari;
+                        $masaBerlaku = $v->masa_berlaku;
+                        $tipeMasaBerlaku = $v->tipe_masa_berlaku;
+                        $tglBerlaku = Carbon::now()->format('Y-m-d');
+                     
+                        // insert Master Cuti
+                        // generate ID
+                        $c_generateID = new GenerateIDController();
+                        $idMst = $c_generateID->getIdCutiMst($tipeCuti);
+
+                        $c_cuti = new CutiController();
+                        $result_[$i]['insert_masterCutiDB'] = $c_cuti->insertCutiMst($idMst,$idCuti, $tahun,$idKaryawan,$tipeCuti,$cuti,$jmlHari,$tipeMasaBerlaku,$masaBerlaku,$tglBerlaku);
+                        $i++;
+                    }
+                }
+            }
+            else
+            {
+                $result_['error_service'] ='getServiceLokaHR';
+            }
+            return $result_;
+        } catch (\Exception $ex) {
+            return $ex;
+         }
+     }
 
 }

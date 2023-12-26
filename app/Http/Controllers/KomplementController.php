@@ -12,6 +12,7 @@ use DateTime;
 
 class KomplementController extends Controller
 {
+    // INSERT
     public function insertKomplemenMst($idKomplementMst,$idKomplement, $tahun,$idKaryawan,$tipeKomplement,$jmlKomplement,$qty)
     {
         try {
@@ -41,7 +42,7 @@ class KomplementController extends Controller
                     $data->save();
             }
 
-            return 'success';
+            return 'success insert data master Komplement Karyawan';
         } catch (\Exception $ex) {
             return $ex;
         }
@@ -92,7 +93,9 @@ class KomplementController extends Controller
             return $ex;
         }
     }
+    // END INSERT
 
+    // GET
     public function getTypeMasterKomplemen()
     {
         $data = DB::table('master_komplement')
@@ -215,7 +218,7 @@ class KomplementController extends Controller
                     if ($userDate->greaterThan($currentDate) || $userDate->isToday()) {
                         // The user-provided date is greater than the current date
                         // Handle the situation accordingly, for example, return an error response
-                        $data_ =  $v->tanggal_kedatangan;
+                        $data_ =  $v;
                     }
                     else
                     {
@@ -257,32 +260,46 @@ class KomplementController extends Controller
             return $ex;
         }
     }
+    // END GET
 
-    // API GET REQUST KOMPLEMENT
-    public function getRequestKomplemen(Request $request)
-    {
-        $idKaryawan = $request->id_karyawan;
-        $idKomplemenTrn = $request->id_komplement_trn;
-        try
-        {
-            $data = $this->getRequestKomplemenKaryawan($idKaryawan,$idKomplemenTrn);
-            $dataTicketOrder = null;
-            if($idKomplemenTrn!='')
-            {
-                $dataTicketOrder = $this->getRequestKomplemenTicketOrderKaryawan($idKomplemenTrn);
-            }
-          
-            $result=response()->json([
-                'status' => 'success',
-                'message' => 'Get Data Request Komplement Karyawan Successfuly',
-                'data' => $data,
-                'ticket_order' => $dataTicketOrder
-            ]);
-            return $result;
-        } catch (\Exception $ex) {
-            return $ex;
-        }
-    }
+    // public function updateStatusKomplementKaryawan($idMst,$idKomplement,$tahun,$idKaryawan,$jmlKomplement,$sisaKompelement)
+    // {
+    //     $idMst = $idMst;
+    //     $idKomplement = $idKomplement;
+    //     $tahun = $tahun;
+    //     $idKaryawan = $idKaryawan;
+    //     $jmlKomplement = $jmlKomplement;
+    //     $sisaKompelement = $sisaKompelement;
+    //     try
+    //     {
+    //          // cek data
+    //          $dt = DB::table('komplement_mst')
+    //          ->select('id_karyawan')
+    //          ->where('id_karyawan',$idKaryawan)
+    //          ->where('id_komplement',$idKomplement)
+    //          ->where('tahun',$tahun);
+    //          if($dt->exists())
+    //          {
+    //              // data sudah ada
+    //          }
+    //          else
+    //          {
+    //             DB::table('komplement_mst')
+    //             ->where('id_komplement_mst',$idMst)
+    //             ->where('id_komplement',$idKomplement)
+    //             ->where('tahun',$tahun)
+    //             ->where('id_karyawan',$idKaryawan)
+    //             ->update([
+    //                 'jml_komplement'=> $jmlKomplement,
+    //                 'sisa_komplement'=> $sisaKompelement
+    //             ]);
+    //          }
+
+    //         return 'Update Master Komplement Karyawan Successfuly';
+    //     } catch (\Exception $ex) {
+    //         return $ex;
+    //     }
+    // }
 
     public function updateMasterKomplementKaryawan($idKaryawan_,$idKomplementMst_,$idKomplementTrn_,$idKomplement_)
     {
@@ -352,7 +369,6 @@ class KomplementController extends Controller
 
     public function updateReservationTicket($orderID,$kodeBooking,$status)
     {
-    
         try {
             DB::table('komplement_trn')
             ->where('order_id',$orderID)

@@ -54,7 +54,6 @@ class CutiController extends Controller
                     {
                         $jml = $this->getIntervalHariFromMonth($tglBerlaku,$tglExpied);
                     }
-               
              
                     $data = new CutiMst();
                     $data->id_cuti_mst = $idMst;
@@ -378,14 +377,29 @@ class CutiController extends Controller
             $bulan = Carbon::yesterday()->format('m');
             $day = "01";
             $dateStartMonth = date($tahun.'-'.$bulan.'-'.$day);
-            $yesterday = Carbon::yesterday();
-
-            DB::table('cuti_mst')
+            // $yesterday = Carbon::yesterday();
+            $yesterday = '2023-12-01';
+            $x = DB::table('cuti_mst')
             ->where('tahun',$tahun)
             ->whereBetween('date_end', array($dateStartMonth." 00:00:00", $yesterday." 23:59:59"))
-            ->update([
-                'is_dell'=> '0'
-            ]);
+            ->get();
+            dd($x);
+            // ->update([
+            //     'is_dell'=> '0'
+            // ]);
+
+            $day = Carbon::now()->format('d');
+            if($day=='21')
+            {
+                // $month = Carbon::now()->format('m');
+                // $year = Carbon::now()->format('Y');
+                
+                // $tgl = $year.'-'.$month.'-'.$day;
+                $periode=DB::table('jadwal_karyawan')
+                ->select('id_periode as id_periode')
+                ->where('jadwal_karyawan.tanggal', $yesterday)
+                ->first();
+            }
 
             $dataExpied= DB::table('cuti_mst')
             ->select('users.departemen','users.name','cuti_mst.id_karyawan')
