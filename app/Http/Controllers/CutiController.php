@@ -45,14 +45,23 @@ class CutiController extends Controller
             }
             else
             {
-                    // menambahkan toleransi masa berlaku cuti
-                    // $toleransiIntervalCuti = $this->getToleransiMasterCuti();
+             
                     // get tglExpied
                     $tglExpied = $this->getTglExpied($masaBerlaku,$tipeMasaBerlaku,$tglBerlaku);
                     // jika tipe cuti khusus maka jml hari menggunakan interval tanggal
                     if($tipeCuti=='CK')
                     {
                         $jml = $this->getIntervalHariFromMonth($tglBerlaku,$tglExpied);
+                    }
+                    else
+                    {
+                        // menambahkan toleransi masa berlaku cuti
+                        $toleransiIntervalCuti = $this->getToleransiMasterCuti();
+
+                        $_tglExpied = $tglExpied->format('Y-m-d');
+                        $masaBerlaku = $toleransiIntervalCuti->toleransi_masa_berlaku;
+                        $tipeMasaBerlaku = $toleransiIntervalCuti->tipe_masa_berlaku;
+                        $tglExpied = $this->getTglExpied($masaBerlaku,$tipeMasaBerlaku,$_tglExpied);
                     }
              
                     $data = new CutiMst();
@@ -373,45 +382,34 @@ class CutiController extends Controller
     {
         try
         {
-            $tahun = Carbon::yesterday()->format('Y');
-            $bulan = Carbon::yesterday()->format('m');
-            $day = "01";
-            $dateStartMonth = date($tahun.'-'.$bulan.'-'.$day);
-            // $yesterday = Carbon::yesterday();
-            $yesterday = '2023-12-01';
-            $x = DB::table('cuti_mst')
-            ->where('tahun',$tahun)
-            ->whereBetween('date_end', array($dateStartMonth." 00:00:00", $yesterday." 23:59:59"))
-            ->get();
-            dd($x);
-            // ->update([
-            //     'is_dell'=> '0'
-            // ]);
+            $yesterday = Carbon::yesterday()->format('Y-m-d');
 
-            $day = Carbon::now()->format('d');
-            if($day=='21')
-            {
-                // $month = Carbon::now()->format('m');
-                // $year = Carbon::now()->format('Y');
-                
-                // $tgl = $year.'-'.$month.'-'.$day;
-                $periode=DB::table('jadwal_karyawan')
-                ->select('id_periode as id_periode')
-                ->where('jadwal_karyawan.tanggal', $yesterday)
-                ->first();
-            }
-
-            $dataExpied= DB::table('cuti_mst')
+            $dataExpied_= DB::table('cuti_mst')
             ->select('users.departemen','users.name','cuti_mst.id_karyawan')
             ->join('users','users.id_karyawan','cuti_mst.id_karyawan')
-            ->whereBetween('cuti_mst.date_end', array($dateStartMonth." 00:00:00", $yesterday." 23:59:59"))
-            ->where('cuti_mst.updated_at','like', '%'. Carbon::now()->format('Y-m-d').'%')
-            ->where('cuti_mst.is_dell','0')
-            ->get();
-            
-            $result_['callback'] ='disable Master Cuti validated period expied success';
-            $result_['data']=json_encode($dataExpied);
+            ->where('date_end', $yesterday)
+            ->where('tipe_cuti','CT');
+            if($dataExpied_->exists())
+            {
+                DB::table('cuti_mst')
+                ->where('tipe_cuti','CT')
+                ->where('date_end', $yesterday)
+                ->update([
+                    'is_dell'=> '0'
+                ]);
 
+                // $dataExpied_->where('cuti_mst.is_dell','0');
+                $dataExpied = $dataExpied_->get();
+
+                $result_['callback'] ='disable Master Cuti validated period expied success';
+                $result_['data']=json_encode($dataExpied);
+            }
+            else
+            {
+                $dataExpied = null;
+                $result_['data']=json_encode($dataExpied);
+            }
+            
             return $result_;
         } catch (\Exception $ex) {
             return $ex;
@@ -467,15 +465,15 @@ class CutiController extends Controller
     }
 
     // mengambil master toleransi cuti
-    // public function getToleransiMasterCuti()
-    // {
-    //     $toleransi_ = DB::table('cuti_validity_period')
-    //     ->select('toleransi_masa_berlaku')
-    //     ->where('id','1')
-    //     ->first();
-    //     $data = $toleransi_->toleransi_masa_berlaku;
-    //     return $data;
-    // }
+    public function getToleransiMasterCuti()
+    {
+        $toleransi_ = DB::table('cuti_validity_period')
+        ->select('tipe_masa_berlaku','toleransi_masa_berlaku')
+        ->where('id','1')
+        ->first();
+        $data = $toleransi_;
+        return $data;
+    }
 
     // mengambil data history approve
     public function getApproveHistory($typeHistory_,$idCutiTrn_)

@@ -23,10 +23,13 @@ class Kernel extends ConsoleKernel
         ->dailyAt('00:01');
 
         $schedule->command('update:komplement')
-        ->dailyAt('00:05');
+        ->dailyAt('00:02');
+
+        // $schedule->command('update:cutiTahunan')
+        // ->dailyAt('00:03');
 
         $schedule->command('update:masaBerlakuCuti')
-        ->dailyAt('00:10');
+        ->dailyAt('00:04');
     }
 
     /**

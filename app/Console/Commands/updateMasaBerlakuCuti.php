@@ -40,56 +40,75 @@ class updateMasaBerlakuCuti extends Command
             // getData Karyawan validity Periode cuti expied
             $c_cutiController = new CutiController();
             $result['disable_cutiTrn'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied();
-         
+            
             // insert history
-            $_requestValue['class'] = 'UpdateMasaBerlakuCuti';
+            $_requestValue['apps'] = 'Service_HRIS-Lokaryawan';
+            $_requestValue['service'] = 'CRON JOB';
+            $_requestValue['class'] = 'updateMasaBerlakuCuti-disable_cutiTrn';
             $_requestValue['status'] ='Success';
             $_requestValue['report'] = json_encode($result);
-            
+
             $c_class = new CronJob();
             $c_class = $c_class->insertLog($_requestValue);
-
-            // get List Karyawan update
-            $jsonDecodeListKaryawan = json_decode($result['disable_cutiTrn']['data']);
-            foreach($jsonDecodeListKaryawan as $x)
-            {
-                $idAbsen = $x->id_karyawan;
-                $tanggalBerlakuBaru =  Carbon::now()->format('Y-m-d');
-                // insert Master Cuti 
-                $tahun = Carbon::now()->format('Y');
-                // get tipe Cuti
-                $c_cuti = new CutiController();
-                $lstMstCuti = $c_cuti->getTypeMasterCuti();
-                foreach($lstMstCuti as $v)
-                {
-                    $idCuti = $v->id_cuti;
-                    $tipeCuti = $v->tipe_cuti;
-                    $cuti = $v->cuti;
-                    $jmlHari = $v->jml_hari;
-                    $masaBerlaku = $v->masa_berlaku;
-                
-                    // insert Master Cuti
-                    $c_karyawan = new KaryawanController();
-                    $result_['insert_cuti']= $c_karyawan->insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$jmlHari,$masaBerlaku,$tanggalBerlakuBaru);
-                
-                    // insert history
-                    $_requestValue['class'] = 'UpdateMasaBerlakuCuti';
-                    $_requestValue['status'] ='Success';
-                    $_requestValue['report'] = json_encode($result);
-                    
-                    $c_class = new CronJob();
-                    $c_class = $c_class->insertLog($_requestValue);
-                }
-            }
 
             // sent to developer
             $c_sentWhatsappController = new SentWhatsappController();
             $c_sentWhatsappController->sentWAtoDeveloper(json_encode($_requestValue));
+
+            $tahun = Carbon::now()->format('Y');
+            $tglBerlaku = Carbon::now()->format('Y-m-d');
+            // get tipe Cuti
+            $c_cuti = new CutiController();
+            $lstMstCuti = $c_cuti->getTypeMasterCuti();
+
+            // list Data Karyawan disable Cuti Master
+            $lstKaryawanStatusNonActive = json_decode($result['disable_cutiTrn']['data']);
+
+            if($lstKaryawanStatusNonActive !=null)
+            {
+                foreach($lstKaryawanStatusNonActive as $x)
+                {
+                    // fill data
+                    $idKaryawan = $x->id_karyawan;
+    
+                    foreach($lstMstCuti as $v)
+                    {
+                        $idCuti = $v->id_cuti;
+                        $tipeCuti = $v->tipe_cuti;
+                        $cuti = $v->cuti;
+                        $jmlHari = $v->jml_hari;
+                        $masaBerlaku = $v->masa_berlaku;
+                        $tipeMasaBerlaku = $v->tipe_masa_berlaku;
+                             
+                        $c_generateID = new GenerateIDController();
+                        $idMst = $c_generateID->getIdCutiMst($tipeCuti);
+                
+                        $c_cuti = new CutiController();
+                        $result_['insert_masterCutiDB'] = $c_cuti->insertCutiMst($idMst,$idCuti, $tahun,$idKaryawan,$tipeCuti,$cuti,$jmlHari,$tipeMasaBerlaku,$masaBerlaku,$tglBerlaku);
+                    }
+                }
+    
+                // insert history
+                $_requestValue['apps'] = 'Service_HRIS-Lokaryawan';
+                $_requestValue['service'] = 'CRON JOB';
+                $_requestValue['class'] = 'updateMasaBerlakuCuti-update_masterCutiTahunan';
+                $_requestValue['status'] ='Success';
+                $_requestValue['report'] = json_encode($result);
+                
+                $c_class = new CronJob();
+                $c_class = $c_class->insertLog($_requestValue); 
+                
+                // sent to developer
+                $c_sentWhatsappController = new SentWhatsappController();
+                $c_sentWhatsappController->sentWAtoDeveloper(json_encode($_requestValue));
+            }
             
-            return 'Cron Job Update Masa Berlaku Cuti Success';
+            return 'Cron Job Update Cuti Tahunan Success';
         } catch (\Exception $ex) {
             // insert history
-            $_requestValue['class'] = 'UpdateMasaBerlakuCuti';
+            $_requestValue['apps'] = 'Service_HRIS-Lokaryawan';
+            $_requestValue['service'] = 'CRON JOB';
+            $_requestValue['class'] = 'updateMasaBerlakuCuti';
             $_requestValue['status'] ='failed';
             $_requestValue['report'] = json_encode($ex);
         
@@ -99,6 +118,8 @@ class updateMasaBerlakuCuti extends Command
             // sent to developer
             $c_sentWhatsappController = new SentWhatsappController();
             $c_sentWhatsappController->sentWAtoDeveloper(json_encode($_requestValue));
+
+            return 'Failed Cron Job';
         }
     }
 }

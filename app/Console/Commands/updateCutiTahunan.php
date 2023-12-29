@@ -7,7 +7,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 use App\Http\Controllers\CronJob;
-use App\Http\Controllers\CutiController;
+use App\Http\Controllers\GenerateIDController;
+
 use App\Http\Controllers\Service_Cuti;
 use App\Http\Controllers\SentWhatsappController;
 
@@ -43,13 +44,13 @@ class updateCutiTahunan extends Command
     {
         try {
             // getData Karyawan validity Periode cuti expied
-            $c_cutiController = new CutiController();
-            $result['disable_cutiTrn'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied();
-
+            $c_serviceCuti = new Service_Cuti();
+            $result['update_masterCutiTahunan'] = $c_serviceCuti->updateMasterCutiTahunan();
+            
             // insert history
             $_requestValue['apps'] = 'Service_HRIS-Lokaryawan';
             $_requestValue['service'] = 'CRON JOB';
-            $_requestValue['class'] = 'updateCutiTahunan';
+            $_requestValue['class'] = 'updateCutiTahunan-update_masterCutiTahunan';
             $_requestValue['status'] ='Success';
             $_requestValue['report'] = json_encode($result);
 
@@ -59,25 +60,7 @@ class updateCutiTahunan extends Command
             // sent to developer
             $c_sentWhatsappController = new SentWhatsappController();
             $c_sentWhatsappController->sentWAtoDeveloper(json_encode($_requestValue));
-
-            // insert karyawan yg sudah mendapatkan cuti aktif
-            $c_serviceKomplement = new Service_Cuti();
-            $result['update_masterCutiTahunan'] = $c_serviceKomplement->updateMasterKomplement();
-         
-            // insert history
-            $_requestValue['apps'] = 'Service_HRIS-Lokaryawan';
-            $_requestValue['service'] = 'CRON JOB';
-            $_requestValue['class'] = 'updateCutiTahunan';
-            $_requestValue['status'] ='Success';
-            $_requestValue['report'] = json_encode($result);
             
-            $c_class = new CronJob();
-            $c_class = $c_class->insertLog($_requestValue);
-            
-            // sent to developer
-            $c_sentWhatsappController = new SentWhatsappController();
-            $c_sentWhatsappController->sentWAtoDeveloper(json_encode($_requestValue));
-
             return 'Cron Job Update Cuti Tahunan Success';
         } catch (\Exception $ex) {
             // insert history
