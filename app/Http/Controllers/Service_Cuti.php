@@ -153,14 +153,14 @@ class Service_Cuti extends Controller
      {
         try
         {
-            $c_cutiController = new CutiController();
-            $result['disable_cutiTrn'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied();
+            // $c_cutiController = new CutiController();
+            // $result['disable_cutiTrn'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied('date_end');
          
              // get service API
              $typeService = 'get_karyawan_status_cuti';
              $json_data = new API_Guzzle();
              $data_jsonDecode = $json_data->getServiceLokaHR($typeService);
-         
+        
             // cek status API
             if($data_jsonDecode->status=='success')
             {

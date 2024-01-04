@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+
+use App\Http\Controllers\GenerateIDController;
 use App\Http\Controllers\CutiController;
 use App\Http\Controllers\CronJob;
 use App\Http\Controllers\KaryawanController;
@@ -38,9 +40,10 @@ class updateMasaBerlakuCuti extends Command
     {
         try {
             // getData Karyawan validity Periode cuti expied
+            $yesterday = Carbon::yesterday()->format('Y-m-d');
             $c_cutiController = new CutiController();
-            $result['disable_cutiTrn'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied();
-            
+            $result['disable_cutiTrn'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied('date_expired',$yesterday);
+
             // insert history
             $_requestValue['apps'] = 'Service_HRIS-Lokaryawan';
             $_requestValue['service'] = 'CRON JOB';
@@ -62,7 +65,10 @@ class updateMasaBerlakuCuti extends Command
             $lstMstCuti = $c_cuti->getTypeMasterCuti();
 
             // list Data Karyawan disable Cuti Master
-            $lstKaryawanStatusNonActive = json_decode($result['disable_cutiTrn']['data']);
+            $c_cutiController = new CutiController();
+            $result['karyawan_disable_validatePerioedExpied'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied('date_end',$yesterday);
+         
+            $lstKaryawanStatusNonActive =json_decode($result['karyawan_disable_validatePerioedExpied']['data']);
 
             if($lstKaryawanStatusNonActive !=null)
             {

@@ -36,7 +36,7 @@ class CutiController extends Controller
             ->select('id_karyawan')
             ->where('id_karyawan',$idKaryawan)
             ->where('tipe_cuti','CT')
-            ->where('is_dell','1')
+            ->where('tahun',$tahun)
             ->where('id_cuti',$idCuti);
             if($dt->exists())
             {
@@ -45,23 +45,22 @@ class CutiController extends Controller
             }
             else
             {
-             
                     // get tglExpied
-                    $tglExpied = $this->getTglExpied($masaBerlaku,$tipeMasaBerlaku,$tglBerlaku);
+                    $tglEnd = $this->getTglExpied($masaBerlaku,$tipeMasaBerlaku,$tglBerlaku);
                     // jika tipe cuti khusus maka jml hari menggunakan interval tanggal
                     if($tipeCuti=='CK')
                     {
-                        $jml = $this->getIntervalHariFromMonth($tglBerlaku,$tglExpied);
+                        $jml = $this->getIntervalHariFromMonth($tglBerlaku,$tglEnd);
                     }
                     else
                     {
                         // menambahkan toleransi masa berlaku cuti
                         $toleransiIntervalCuti = $this->getToleransiMasterCuti();
 
-                        $_tglExpied = $tglExpied->format('Y-m-d');
-                        $masaBerlaku = $toleransiIntervalCuti->toleransi_masa_berlaku;
-                        $tipeMasaBerlaku = $toleransiIntervalCuti->tipe_masa_berlaku;
-                        $tglExpied = $this->getTglExpied($masaBerlaku,$tipeMasaBerlaku,$_tglExpied);
+                        $_tglEnd = $tglEnd->format('Y-m-d');
+                        $toleransiExpired = $toleransiIntervalCuti->toleransi_masa_berlaku;
+                        $tipeToleransiExpired = $toleransiIntervalCuti->tipe_masa_berlaku;
+                        $tglExpied = $this->getTglExpied($toleransiExpired,$tipeToleransiExpired,$_tglEnd);
                     }
              
                     $data = new CutiMst();
@@ -76,7 +75,10 @@ class CutiController extends Controller
                     $data->tipe_masa_berlaku = $tipeMasaBerlaku;
                     $data->masa_berlaku = $masaBerlaku;
                     $data->date_start = $tglBerlaku;
-                    $data->date_end = $tglExpied;
+                    $data->date_end = $tglEnd;
+                    $data->tipe_toleransi_expired = $tipeToleransiExpired;
+                    $data->toleransi_expired = $toleransiExpired;
+                    $data->date_expired = $tglExpied;
                     $data->is_dell = '1';
                     $data->save();
             }
@@ -378,27 +380,40 @@ class CutiController extends Controller
     }
 
     // mendisable cuti trn yg masa berlakunya sudah jatuh tempo
-    public function disableCutiTrnValidatePeriodeExpied()
+    public function disableCutiTrnValidatePeriodeExpied($tipeExpired,$tanggal)
     {
         try
         {
-            $yesterday = Carbon::yesterday()->format('Y-m-d');
-
+            $tipeExpired = $tipeExpired;
+      
             $dataExpied_= DB::table('cuti_mst')
             ->select('users.departemen','users.name','cuti_mst.id_karyawan')
             ->join('users','users.id_karyawan','cuti_mst.id_karyawan')
-            ->where('date_end', $yesterday)
             ->where('tipe_cuti','CT');
+
+            // cek tipeExpired
+            if($tipeExpired=='date_end')
+            {
+                $dataExpied_->where('date_end', $tanggal);
+            }
+            elseif($tipeExpired=='date_expired')
+            {
+                $dataExpied_->where('date_expired', $tanggal);
+            }
+
             if($dataExpied_->exists())
             {
-                DB::table('cuti_mst')
-                ->where('tipe_cuti','CT')
-                ->where('date_end', $yesterday)
-                ->update([
-                    'is_dell'=> '0'
-                ]);
-
-                // $dataExpied_->where('cuti_mst.is_dell','0');
+                // cek tipeExpired
+                if($tipeExpired=='date_expired')
+                {
+                    DB::table('cuti_mst')
+                    ->where('tipe_cuti','CT')
+                    ->where('date_expired', $tanggal)
+                    ->update([
+                        'is_dell'=> '0'
+                    ]);    
+                }
+               
                 $dataExpied = $dataExpied_->get();
 
                 $result_['callback'] ='disable Master Cuti validated period expied success';
@@ -409,7 +424,6 @@ class CutiController extends Controller
                 $dataExpied = null;
                 $result_['data']=json_encode($dataExpied);
             }
-            
             return $result_;
         } catch (\Exception $ex) {
             return $ex;

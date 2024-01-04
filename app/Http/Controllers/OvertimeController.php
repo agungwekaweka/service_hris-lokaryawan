@@ -142,8 +142,8 @@ class OvertimeController extends Controller
         'overtime_history.tgl_approve',
         'overtime_history.note')
         ->join('users','users.id_karyawan','overtime_history.id_karyawan_approve')
-        ->where('id_overtime',$idOvertime);
-    
+        ->where('id_overtime',$idOvertime)
+        ->orderBy('users.id_grade','desc');
         if($data_->exists())
         {
                 if($typeHistory!='')
@@ -268,7 +268,7 @@ class OvertimeController extends Controller
                  foreach($result as $x)
                  {
                      $idOvertime = $x->id_overtime;
-                     
+                 
                      // cek apakah masih ada history approve yg belum di setujui
                      //  0=pending, 1=approve, 2=reject
                      $result_ = $this->getApproveHistory(0,$idOvertime);

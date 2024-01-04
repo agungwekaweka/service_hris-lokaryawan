@@ -18,6 +18,9 @@ class CutiMst extends Model
         'sisa_cuti',
         'date_start',
         'date_end',
+        'tipe_toleransi_expired',
+        'toleransi_expired',
+        'date_expired',
         'is_dell'
     ];
 }

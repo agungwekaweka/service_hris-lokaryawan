@@ -46,7 +46,7 @@ class updateCutiTahunan extends Command
             // getData Karyawan validity Periode cuti expied
             $c_serviceCuti = new Service_Cuti();
             $result['update_masterCutiTahunan'] = $c_serviceCuti->updateMasterCutiTahunan();
-            
+          
             // insert history
             $_requestValue['apps'] = 'Service_HRIS-Lokaryawan';
             $_requestValue['service'] = 'CRON JOB';

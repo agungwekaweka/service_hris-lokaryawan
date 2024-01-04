@@ -12,6 +12,7 @@ class RoleApprove extends Model
     protected $fillable = [
         'id_karyawan',
         'type_approve',
-        'id_approve'
+        'id_approve',
+        'type_role'
     ];
 }

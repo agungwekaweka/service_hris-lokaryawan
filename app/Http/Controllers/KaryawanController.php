@@ -230,11 +230,12 @@ class KaryawanController extends Controller
     // id approve (id departemen, id sub departemen, id karyawan)
     public function insertCustomApprove(Request $request)
     {
+        $typeRole = $request->type_role;
         $idKaryawan = $request->id_karyawan;
         $typeApprove = $request->type_approve;
         $idApprove = $request->id_approve;
         try {
-            $req = $this->insertCustomRoleApprove($idKaryawan,$typeApprove,$idApprove);
+            $req = $this->insertCustomRoleApprove($typeRole,$idKaryawan,$typeApprove,$idApprove);
             $result=response()->json([
                 'status' => 'success',
                 'message' => 'Menambahkan Custom Akses Aprove Karyawan Successfuly',
@@ -277,8 +278,9 @@ class KaryawanController extends Controller
      
         // get list approve up Level
         $c_grade = new GradeController();
-        $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan);
-     
+        $typeRole = '0'; // 0 digunakan untuk role Cuti
+        $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan,$typeRole);
+
         if($lstApproveGradeUp!=null)
         {
             $firstLoad=true;
@@ -340,10 +342,10 @@ class KaryawanController extends Controller
         $result_['update_aksesApprove'] = $c_users->updateAksesApprove($idKaryawan,$approve,$typeApprove);
         return $result_;
     }
-    private function insertCustomRoleApprove($idKaryawan,$typeApprove,$idApprove)
+    private function insertCustomRoleApprove($typeRole,$idKaryawan,$typeApprove,$idApprove)
     {
         $c_roleApprove = new RoleApproveController();
-        $result_['insert_customRoleApprove'] = $c_roleApprove->insertCustomRoleApprove($idKaryawan,$typeApprove,$idApprove);
+        $result_['insert_customRoleApprove'] = $c_roleApprove->insertCustomRoleApprove($typeRole,$idKaryawan,$typeApprove,$idApprove);
         return $result_;
     }
     // --------------------------------------------------------------------------------------------
@@ -459,8 +461,8 @@ class KaryawanController extends Controller
                     // get detail user request
                     $c_userController = new UsersController();
                     $dtUser = $c_userController->getData($idKaryawan);
-
-                    $name = $dtUser->name;
+                   
+                    $name = $dtUser->name.' ('.$dtUser->departemen.')';
                     $email = $idKaryawan.'@salokapark.com';
                     $noHp = $dtUser->no_telephone;
                     $kodeBooking = '-';
@@ -592,6 +594,7 @@ class KaryawanController extends Controller
             $c_komplement = new KomplementController();
             // sample getKomplemenKaryawan($idKaryawan,$tahun,$type_komplemen)
             $dt = $c_komplement->getKomplemenKaryawan($idKaryawan,$tahun,$idKomplemen);
+      
             $sisaKomplemenDB =$dt[0]->sisa_komplement;
 
             if($sisaKomplemenDB >= $qtyPengajuan)
@@ -695,7 +698,8 @@ class KaryawanController extends Controller
         
         // get list approve up Level
         $c_grade = new GradeController();
-        $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan);
+        $typeRole = '1'; // 0 digunakan untuk role Lembur
+        $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan,$typeRole);
       
         if($lstApproveGradeUp!=null)
         {

@@ -25,6 +25,7 @@ class KomplementController extends Controller
             if($dt->exists())
             {
                 // data sudah ada
+                return 'data sudah ada';
             }
             else
             {
@@ -40,9 +41,10 @@ class KomplementController extends Controller
                     $data->date_end = $tahun.'-12-31';
                     $data->is_dell = '1'; 
                     $data->save();
+                    return 'success insert data master Komplement Karyawan';
             }
 
-            return 'success insert data master Komplement Karyawan';
+           
         } catch (\Exception $ex) {
             return $ex;
         }
@@ -51,23 +53,37 @@ class KomplementController extends Controller
     public function insertKomplemenTrn($idKomplemenTrn,$idKaryawan,$name,$email,$noHp,$tglPengajuan,$tanggalKedatangan,$kodeBooking,$orderId,$ticketOrder,$qtyTotal,$paymentMethods,$status)
     {
         try {
-            $data = new KomplementTrn();
-            $data->id_komplemen_trn = $idKomplemenTrn;
-            $data->id_karyawan = $idKaryawan; 
-            $data->name = $name; 
-            $data->email = $email; 
-            $data->no_hp = $noHp; 
-            $data->tanggal_pengajuan = $tglPengajuan; 
-            $data->tanggal_kedatangan = $tanggalKedatangan;
-            $data->kode_booking = $kodeBooking; 
-            $data->order_id = $orderId; 
-            $data->ticket_order = $ticketOrder; 
-            $data->qty_total = $qtyTotal; 
-            $data->payment_methods = $paymentMethods; 
-            $data->status = $status; 
-            $data->is_dell = '1'; 
-            $data->save();
-            return 'success insert data';
+             // cek data
+             $dt = DB::table('komplement_trn')
+             ->select('id_komplemen_trn')
+             ->where('id_komplemen_trn',$idKomplemenTrn);
+             if($dt->exists())
+             {
+                 // data sudah ada
+                 return 'data sudah ada';
+             }
+             else
+             {
+                $data = new KomplementTrn();
+                $data->id_komplemen_trn = $idKomplemenTrn;
+                $data->id_karyawan = $idKaryawan; 
+                $data->name = $name; 
+                $data->email = $email; 
+                $data->no_hp = $noHp; 
+                $data->tanggal_pengajuan = $tglPengajuan; 
+                $data->tanggal_kedatangan = $tanggalKedatangan;
+                $data->kode_booking = $kodeBooking; 
+                $data->order_id = $orderId; 
+                $data->ticket_order = $ticketOrder; 
+                $data->qty_total = $qtyTotal; 
+                $data->payment_methods = $paymentMethods; 
+                $data->status = $status; 
+                $data->is_dell = '1'; 
+                $data->save();
+                return 'success insert data';
+             }
+  
+         
         } catch (\Exception $ex) {
             return $ex;
         }

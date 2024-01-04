@@ -44,6 +44,9 @@ class API_Guzzle extends Controller
 
     public function urlTiketingLocal()
     {
+        // server
+        // $url = 'https://servicereservasi.salokapark.app/api/';
+        // local 
         $url = 'https://servicepg.salokapark.app/api/';
         return $url;
     }

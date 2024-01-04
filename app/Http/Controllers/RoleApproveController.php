@@ -9,9 +9,10 @@ use App\Models\RoleApprove;
 class RoleApproveController extends Controller
 {
     // menambahkan data Role Approve ke table master
-    public function insertCustomRoleApprove($idKaryawan_,$typeApprove_,$idApprove_)
+    public function insertCustomRoleApprove($typeRole_,$idKaryawan_,$typeApprove_,$idApprove_)
     {
         // declare variable
+        $typeRole = $typeRole_;
         $idKaryawan = $idKaryawan_;
         $typeApprove = $typeApprove_;
         $idApprove = $idApprove_;
@@ -20,6 +21,7 @@ class RoleApproveController extends Controller
             // cek data
             $dt = DB::table('role_approve')
             ->select('id')
+            ->where('type_role',$typeRole)
             ->where('id_karyawan',$idKaryawan)
             ->where('type_approve',$typeApprove)
             ->where('id_approve',$idApprove);
@@ -30,7 +32,7 @@ class RoleApproveController extends Controller
             else
             {
                 // data belum ada
-                $req = $this->insert($idKaryawan,$typeApprove,$idApprove);
+                $req = $this->insert($typeRole,$idKaryawan,$typeApprove,$idApprove);
             }
 
             return $req;
@@ -39,14 +41,17 @@ class RoleApproveController extends Controller
         }
     }
 
-    private function insert($idKaryawan_, $typeApprove_,$idApprove_)
+    private function insert($typeRole,$idKaryawan_, $typeApprove_,$idApprove_)
     {
+        $typeRole = $typeRole_;
         $idKaryawan = $idKaryawan_;
         $typeApprove = $typeApprove_;
         $idApprove = $idApprove_;
+  
         try
         {
             $data = new RoleApprove();
+            $data->type_role = $typeRole;
             $data->id_karyawan = $idKaryawan;
             $data->type_approve = $typeApprove;
             $data->id_approve = $idApprove; 
