@@ -12,7 +12,7 @@ use App\Http\Controllers\KomplementController;
 use App\Http\Controllers\HODController;
 use App\Http\Controllers\OvertimeController;
 
-
+use App\Http\Controllers\Service_RoleApprove;
 use App\Http\Controllers\Service_Cuti;
 use App\Http\Controllers\Service_Komplemen;
 
@@ -45,6 +45,7 @@ use Illuminate\Support\Facades\Session;
         // jika type approve custom
         // insert cutom approve
         Route::post('insert_custom_approve', 'insertCustomApprove'); 
+        Route::post('delete_custom_approve', 'deleteCustomApprove'); 
 
         // KOMPLEMEN
         // get data sisa komplemen karyawan
@@ -90,6 +91,10 @@ Route::controller(Service_Cuti::class)->group(function () {
     Route::get('get_master_cuti_karyawan', 'getListMasterCuti'); 
     // get data master cuti karyawan
     Route::get('get_request_cuti_karyawan', 'getListRequestCuti'); 
+    // get data master cuti karyawan
+    Route::get('get_request_cuti_karyawan_approve_not_available', 'getListRequestCutiApproveNotAvailable'); 
+    // import Data Master Cuti
+    Route::post('import_data_master_cuti', 'importDataMasterCuti');
 
     // CRON
     // Update Master Cuti Tahunan == Cron update:cutiTahunan
@@ -122,6 +127,12 @@ Route::controller(Service_Komplemen::class)->group(function () {
     // Update Master Komplement == Cron update:komplement
     Route::get('update_master_komplement', 'updateMasterKomplement'); 
 });
+
+Route::controller(Service_RoleApprove::class)->group(function () {
+    Route::get('cek_role_approve_karyawan','cekRoleApproveKaryawan');
+    Route::get('get_list_role_approve','getListRoleApprove');
+});
+
 
 // CronJob
 // update masa berlaku Cuti

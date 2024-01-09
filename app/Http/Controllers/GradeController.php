@@ -146,7 +146,7 @@ class GradeController extends Controller
            $c_gradeController = new GradeController();
            $dtGradeDsc = $c_gradeController->getTypeMasterGrade('desc');
            $gradeUp = $c_gradeController->getLevelGrade($dtGradeDsc,$idGrade,$approveLvUp);
-    
+          
            $firstApprove=true;
            $x=[];
            foreach($gradeUp as $v)
@@ -224,7 +224,15 @@ class GradeController extends Controller
     private function cekApproveCustom($idApprove,$idGrade,$typeRole)
     {
         $qry = DB::table('role_approve')
-        ->select('users.departemen','users.sub_departemen','users.id_karyawan','users.grade','users.name','users.no_telephone')
+        ->select(
+            // 'role_approve.id_karyawan',
+            DB::raw('(select departemen from users where users.id_karyawan=role_approve.id_karyawan limit 1) as departemen'),
+            DB::raw('(select sub_departemen from users where users.id_karyawan=role_approve.id_karyawan limit 1) as sub_departemen'),
+            DB::raw('(select id_karyawan from users where users.id_karyawan=role_approve.id_karyawan limit 1) as id_karyawan'),
+            DB::raw('(select grade from users where users.id_karyawan=role_approve.id_karyawan limit 1) as grade'),
+            DB::raw('(select name from users where users.id_karyawan=role_approve.id_karyawan limit 1) as name'),
+            DB::raw('(select no_telephone from users where users.id_karyawan=role_approve.id_karyawan limit 1) as no_telephone')
+            )
         ->join('users','users.id_karyawan','role_approve.id_karyawan');
         $qry->where('users.id_grade','<>',$idGrade);
         $qry->where('role_approve.type_role',$typeRole);

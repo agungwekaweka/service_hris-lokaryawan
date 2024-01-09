@@ -38,9 +38,10 @@ class HODController extends Controller
         $status = $request->status;
         $note = $request->note;
         $idKaryawanApprove = $request->id_karyawan_approve;
+        $jamLembur = $request->jam_lembur;
         try {
             $tglApprove = Carbon::now()->format('Y-m-d H:i:s');
-            $req = $this->actionRequestOvertime_($idOvertime,$status,$note,$idKaryawanApprove,$tglApprove);
+            $req = $this->actionRequestOvertime_($idOvertime,$status,$note,$idKaryawanApprove,$tglApprove,$jamLembur);
             $result=response()->json([
                 'status' => 'success',
                 'message' => 'Update Action Cuti Successfuly',
@@ -208,31 +209,11 @@ class HODController extends Controller
                 $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($idCutiTrn,$telephone,$idKaryawan,$cuti,$tanggal,$keterangan);
              }
         }
-       
         return $result_;
     }
 
-    private function actionRequestOvertime_($idOvertime,$status,$note,$idKaryawanApprove,$tglApprove)
+    private function actionRequestOvertime_($idOvertime,$status,$note,$idKaryawanApprove,$tglApprove,$jamLembur_)
     {
-        // update cuti_approve_history
-        $c_overtimeController = new OvertimeController();
-        $result_['update_actionCuti'] = $c_overtimeController->updateApproveHistory($idOvertime,$status,$note,$idKaryawanApprove,$tglApprove);
-
-        // get data overtime by ID Trn
-        $c_overtimeController = new OvertimeController();
-        $result_['get_dataOvertimeByID'] = $c_overtimeController->getOvertimeRequest($idOvertime,'');
-   
-        $telephone = $result_['get_dataOvertimeByID'][0]->no_telephone;
-        $nik = $result_['get_dataOvertimeByID'][0]->nik;
-        $idKaryawan = $result_['get_dataOvertimeByID'][0]->id_karyawan;
-        $tanggalLembur =  $result_['get_dataOvertimeByID'][0]->tgl_lembur;
-        $jamLembur_ = $result_['get_dataOvertimeByID'][0]->jam_lembur;
-        $keterangan = $result_['get_dataOvertimeByID'][0]->keterangan;
-
-        // convert Jam lembur
-        $c_toolsConvert = new ToolsConvert();
-        $jamLembur = $c_toolsConvert->convertInputTypeDecimalOrInterger($jamLembur_);
-
         // jika aprove ditolak langsung update master Overtime
         if($status=='2')
         {
@@ -247,24 +228,42 @@ class HODController extends Controller
         }
         else
         {
+            // update cuti_approve_history
+            $c_overtimeController = new OvertimeController();
+            $result_['update_actionCuti'] = $c_overtimeController->updateApproveHistory($idOvertime,$status,$note,$idKaryawanApprove,$tglApprove);
+
+            // get data overtime by ID Trn
+            $c_overtimeController = new OvertimeController();
+            $result_['get_dataOvertimeByID'] = $c_overtimeController->getOvertimeRequest($idOvertime,'');
+    
+            $telephone = $result_['get_dataOvertimeByID'][0]->no_telephone;
+            $nik = $result_['get_dataOvertimeByID'][0]->nik;
+            $idKaryawan = $result_['get_dataOvertimeByID'][0]->id_karyawan;
+            $tanggalLembur =  $result_['get_dataOvertimeByID'][0]->tgl_lembur;
+            $jmLembur = $result_['get_dataOvertimeByID'][0]->jam_lembur;
+            $keterangan = $result_['get_dataOvertimeByID'][0]->keterangan;
+
+            // convert Jam lembur
+            $c_toolsConvert = new ToolsConvert();
+            $jamLembur = $c_toolsConvert->convertInputTypeDecimalOrInterger($jmLembur);
+            
              // cek apakah masih ada history approve yg belum di setujui
              $c_overtimeController =new OvertimeController();
              //  0=pending, 1=approve, 2=reject
              $result_['get_approve_history'] = $c_overtimeController->getApproveHistory(0,$idOvertime);
-           
+            
              if($result_['get_approve_history']==null)
              {
-               // update master overtime
+                // data sudah fix di setujui semua HOD
+                // update master overtime
                 $c_overtimeController = new OvertimeController();
                 // status 0=pending, 1=approve, 2=reject
                 $result_['update_masterOvertime'] = $c_overtimeController->updateActionOvertimeMst($idOvertime,$status,$note);
 
                // insert tanggal overtime di aplikasi Payroll
-            //    $c_apiGuzzle = new API_Guzzle();
-            //    $var = 'update_jadwal_karyawan';
-            //    // cuti tahunan = 6, cuti khusus = 66
-            //    $valueKehadiran = '6';
-            //    $result_['update_lokaHR_jadwal_karyawan'] = $c_apiGuzzle->postServiceLokaHR($var,$nip,$tanggal,$keterangan,$valueKehadiran);
+               $c_apiGuzzle = new API_Guzzle();
+               $var = 'update_jadwal_karyawan';
+               $result_['insert_overtime_payroll'] = $c_apiGuzzle->postServiceLokaHR($var,$nip,$tanggal,$keterangan,$valueKehadiran);
               
                 // sent whatsapp message
                 $c_sentWaController = new SentWhatsappController();
@@ -273,6 +272,12 @@ class HODController extends Controller
             }
              else
              {
+                // update master overtime jika hod mengubah jam Lembur
+                $c_overtimeController = new OvertimeController();
+                // status 0=pending
+                $status = '0';
+                $result_['update_masterOvertime'] = $c_overtimeController->updateActionOvertimeMst($idOvertime,$status,$note,$jamLembur_);
+
                 // masih ada data yg pending
                 $telephone = $result_['get_approve_history'][0]->telephone;
                 

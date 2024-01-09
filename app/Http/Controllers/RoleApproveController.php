@@ -62,21 +62,27 @@ class RoleApproveController extends Controller
         }
     }
 
-    // private function delete($idKaryawan_, $typeApprove_,$idApprove_)
-    // {
-    //     $idKaryawan = $idKaryawan_;
-    //     $typeApprove = $typeApprove_;
-    //     $idApprove = $idApprove_;
-    //     try
-    //     {
-    //         $data = new RoleApprove();
-    //         $data->id_karyawan = $idKaryawan;
-    //         $data->type_approve = $typeApprove;
-    //         $data->id_approve = $idApprove; 
-    //         $data->save();
-    //         return 'data berhasil ditambahkan';
-    //     } catch (\Exception $ex) {
-    //         return $ex;
-    //     }
-    // }
+    public function deleteCustomRoleApprove($idKaryawan,$idRoleApprove)
+    {
+        $idKaryawan = $idKaryawan;
+        $idRoleApprove = $idRoleApprove;
+        try
+        {
+            if($idKaryawan !='')
+            {
+                DB::table('role_approve')
+                ->where('id_karyawan','=',$idKaryawan)
+                ->delete();
+            }
+            elseif($idRoleApprove!='')
+            {
+                DB::table('role_approve')
+                ->where('id','=',$idRoleApprove)
+                ->delete();
+            }
+            return 'success delete data';
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
 }

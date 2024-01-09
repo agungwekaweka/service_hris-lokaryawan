@@ -41,53 +41,8 @@ class KaryawanController extends Controller
                     $doj = $v->doj;
                     $dob = $v->dob;
 
-                    // cek tanggal join sudah memenuhi atau belum
-                    $toDate = Carbon::now();
-                    $fromDate = Carbon::parse($doj);
-                    $months = $toDate->diffInMonths($fromDate);
-                    
-                    // if($months < 11)
-                    // {
-                    //     continue;
-                    // }
-
                     // insert table user
                     $result_['karyawn_active'][0] = $this->insertUser($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen,$idGrade, $grade, $name,$noTelephone, $idAbsen, $username, $password, $isDell,$doj,$dob);
-              
-                    // $tahun = Carbon::now()->format('Y');
-                    // get tipe Cuti
-                    // $c_cuti = new CutiController();
-                    // $lstMstCuti = $c_cuti->getTypeMasterCuti();
-                    // foreach($lstMstCuti as $v)
-                    // {
-                    //     $idCuti = $v->id_cuti;
-                    //     $tipeCuti = $v->tipe_cuti;
-                    //     $cuti = $v->cuti;
-                    //     $jmlHari = $v->jml_hari;
-                    //     $masaBerlaku = $v->masa_berlaku;
-                    //     $tipeMasaBerlaku = $v->tipe_masa_berlaku;
-                     
-                    //     // insert Master Cuti
-                    //    $result_['karyawn_active'][1]= $this->insertCuti($idCuti, $tahun,$idAbsen,$tipeCuti,$cuti,$jmlHari,$tipeMasaBerlaku,$masaBerlaku,$doj);
-                    // }
-                    
-                    // get master komplement
-                    // $c_komplement = new KomplementController();
-                    // $lstMstKomplemen = $c_komplement->getTypeMasterKomplemen();
-             
-                    // foreach($lstMstKomplemen as $v)
-                    // {
-                    
-                    //     $idKomplement = $v->id_komplement;
-                    //     $tipeKomplement = $v->komplement;
-                    //     $qty = $v->qty;
-
-                    //     $c_generateID = new GenerateIDController();
-                    //     $idKomplemenMst = $c_generateID->getIDKomplemenMst($idKomplement);
-
-                    //     // insert Master Komplemen
-                    //     $result_['karyawn_active'][2] = $this->insertKomplementMst($idKomplemenMst,$idKomplement, $tahun,$idAbsen,$tipeKomplement,$qty,$qty);
-                    // }     
                 }
 
                 // karyawan Non Acvie
@@ -247,6 +202,23 @@ class KaryawanController extends Controller
         }
     }
 
+    public function deleteCustomApprove(Request $request)
+    {
+        $idKaryawan = $request->id_karyawan;
+        $idRoleApprove = $request->id_role_approve;
+        try {
+            $req = $this->deleteCustomRoleApprove($idKaryawan,$idRoleApprove);
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Delete Custom Akses Aprove Karyawan Successfuly',
+                'data' => $req
+            ]);
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
     // -----------------------------------------------------------------------------
     private function insertUser($idDepartemen,$departemen, $idSubDepartemen,$subDepartemen,$idGrade, $grade, $name,$noTelephone, $idAbsen, $username, $password, $isDell,$doj,$dob)
     {
@@ -312,6 +284,37 @@ class KaryawanController extends Controller
         return $result_;
     }
 
+    // insert Cuti Khusus
+    private function insertCutiTRN_khusus($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status)
+    {  
+        // insert data
+        $c_cuti = new CutiController();
+        $result_['insert_cutiDB'] = $c_cuti->insetCutiTrn($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status);
+
+        // update data master cuti
+        $c_cuti = new CutiController();
+        $result_['update_sisaCut'] = $c_cuti->updateMasterCutiKaryawan($idKaryawan,$idMst,$idTrn,$idCuti);
+     
+        // get data cuti TRN by ID Trn
+        $c_cutiController = new CutiController();
+        $result_['get_dataCutiTRN'] = $c_cutiController->getCutiTrn($idTrn);
+        $telephone = $result_['get_dataCutiTRN']->no_telephone;
+        $nip = $result_['get_dataCutiTRN']->nik;
+
+        // update tanggal di aplikasi lokaHR (API)
+        $c_apiGuzzle = new API_Guzzle();
+        $var = 'update_jadwal_karyawan';
+        // cuti tahunan = 6, cuti khusus = 66
+        $valueKehadiran = '66';
+        $result_['update_lokaHR_jadwal_karyawan'] = $c_apiGuzzle->postServiceLokaHR($var,$nip,$tanggal,$keterangan,$valueKehadiran);
+            
+        // sent whatsapp message
+        $c_sentWaController = new SentWhatsappController();
+        $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCutiDiterima($idTrn,$telephone,$idKaryawan,$cuti,$tanggal,$keterangan);
+      
+        return $result_;
+    }
+
     private function insertCutiLampiran($idCutiMst,$idCutiTrn,$tahun,$url)
     {
         $c_cuti = new CutiController();
@@ -348,6 +351,12 @@ class KaryawanController extends Controller
         $result_['insert_customRoleApprove'] = $c_roleApprove->insertCustomRoleApprove($typeRole,$idKaryawan,$typeApprove,$idApprove);
         return $result_;
     }
+    private function deleteCustomRoleApprove($idKaryawan,$idRoleApprove)
+    {
+        $c_roleApprove = new RoleApproveController();
+        $result_['delete_customReoleApprove'] = $c_roleApprove->deleteCustomRoleApprove($idKaryawan,$idRoleApprove);
+        return $result_;
+    }
     // --------------------------------------------------------------------------------------------
 
     // karyawan mengajukan Cuti Khusus
@@ -369,7 +378,7 @@ class KaryawanController extends Controller
             $idPeriode = '-';
             $tglPengajuan = Carbon::now()->format('Y-m-d H:i:s');
             // status 0 = pending HOD, 1= approve, 2=reject
-            $status = '0';
+            $status = '1';
 
             // get tipe Cuti
             $c_cuti = new CutiController();
@@ -385,11 +394,12 @@ class KaryawanController extends Controller
          
             // insert cuti mst
             $result_['insert_cutiMST'] =  $this->insertCuti($idCuti,$tahun,$idKaryawan,$tipeCuti,$cuti,$jmlHari,$tipeMasaBerlaku,$masaBerlaku,$tanggalAwal);
-          
+           
             $sisaCuti =0;
             // cek sisa cuti
             $c_cuti = new CutiController();
             $dt = $c_cuti->getCutiKaryawan($idKaryawan,$tahun,$idCuti);
+           
             foreach($dt as $x)
             {
                 $idMst = $x->id_cuti_mst;
@@ -405,7 +415,7 @@ class KaryawanController extends Controller
                 // generate ID
                 $c_generateID = new GenerateIDController();
                 $idTrn = $c_generateID->getIDCutiTrn($idCuti);
-                $result_['insert_cutiTRN'] = $this->insertCutiTRN($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$sisaCuti,$keterangan,$tglPengajuan,$status);
+                $result_['insert_cutiTRN'] = $this->insertCutiTRN_khusus($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$sisaCuti,$keterangan,$tglPengajuan,$status);
                 
                 // insert Image
                 if($lampiranFile!='') {
@@ -695,12 +705,12 @@ class KaryawanController extends Controller
         $totalJam = 0;
         $c_overtimeController = new OvertimeController();
         $result_['insert_OvertimeMst'] = $c_overtimeController->insertOvertimeMst($idOvertime,$idKaryawan,$nip,$tglPengajuan,$tglLembur,$jamLembur,$totalJam,$keterangan);
-        
+       
         // get list approve up Level
         $c_grade = new GradeController();
-        $typeRole = '1'; // 0 digunakan untuk role Lembur
+        $typeRole = '1'; // 1 digunakan untuk role Lembur
         $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan,$typeRole);
-      
+       
         if($lstApproveGradeUp!=null)
         {
             $firstLoad = true;
@@ -723,7 +733,6 @@ class KaryawanController extends Controller
                 //insert list Approve up Level
                 $result_['insert_approveHistory'] = $this->insertOvertimeHistory($idOvertime,$status,$telephone,$idKaryawanApprove,$tglApprove,$note);
             }
-
         }
         else
         {

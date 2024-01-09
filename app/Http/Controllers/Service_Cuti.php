@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Client;
 use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\ImportCuti;
 
 class Service_Cuti extends Controller
 {
@@ -148,14 +150,91 @@ class Service_Cuti extends Controller
           }
       }
 
+        // Get List Request Cuti Karyawan Approve not Available
+        public function getListRequestCutiApproveNotAvailable(Request $request)
+        {
+           $tahun = $request->tahun;
+           $idCutiMst = $request->id_cuti_mst;
+           $idCutiTrn = $request->id_cuti_trn;
+           $idCuti = $request->id_cuti;
+           $tipeCuti = $request->tipe_cuti;
+           $idKaryawan = $request->id_karyawan;
+           $tglPengajuan = $request->tgl_pengajuan;
+           $status = $request->status;
+   
+            try
+            {
+                $data_ = DB::table('cuti_trn')
+                ->select(
+                'users.departemen',
+                'users.sub_departemen',
+                'users.grade',
+                'users.name',
+                'cuti_trn.id_karyawan','cuti_trn.id_cuti_mst','cuti_trn.id_cuti_trn','cuti_trn.id_cuti',
+                'cuti_trn.tahun','cuti_trn.tipe_cuti','cuti_trn.cuti','cuti_trn.tanggal',
+                'cuti_trn.total_cuti','cuti_trn.keterangan','cuti_trn.tgl_pengajuan','cuti_trn.status','cuti_trn.note')
+                ->join('users','users.id_karyawan','cuti_trn.id_karyawan');
+                if($data_->exists())
+                {
+                   if($tahun !='')
+                   {
+                       $data_->where('cuti_trn.tahun',$tahun);
+                   }
+                   if($idCutiMst !='')
+                   {
+                       $data_->where('cuti_trn.id_cuti',$idCutiMst);
+                   }
+                   if($idCutiTrn !='')
+                   {
+                       $data_->where('cuti_trn.id_cuti',$idCutiTrn);
+                   }
+                   if($idCuti !='')
+                   {
+                       $data_->where('cuti_trn.id_cuti',$idCuti);
+                   }
+                   if($tipeCuti !='')
+                   {
+                       $data_->where('cuti_trn.tipe_cuti',$tipeCuti);
+                   }
+                   if($idKaryawan !='')
+                   {
+                       $data_->where('cuti_trn.id_karyawan',$idKaryawan);
+                   }
+                   if($tglPengajuan !='')
+                   {
+                       $data_->where('cuti_trn.tgl_pengajuan',$tglPengajuan);
+                   }
+                   if($status !='')
+                   {
+                       $data_->where('cuti_trn.status',$status);
+                   }
+                      $data_->orderBy('users.nik','asc');
+                      $data = $data_->get();
+                      $result=response()->json([
+                          'status' => 'success',
+                          'message' => 'Get Data Master Cuti Successfuly',
+                          'data' => $data
+                      ]);
+                }
+                else
+                {
+                    $result=response()->json([
+                        'status' => 'failed',
+                        'message' => 'Get Data Master Cuti Not Successfuly',
+                    ]);
+                }
+    
+                return $result;
+            } catch (\Exception $ex) {
+                return $ex;
+            }
+        }
+
     //  menambahkan master Cuti Tahunan karyawan yg sudah memenuhi syarat
      public function updateMasterCutiTahunan()
      {
         try
         {
-            // $c_cutiController = new CutiController();
-            // $result['disable_cutiTrn'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied('date_end');
-         
              // get service API
              $typeService = 'get_karyawan_status_cuti';
              $json_data = new API_Guzzle();
@@ -207,6 +286,34 @@ class Service_Cuti extends Controller
         } catch (\Exception $ex) {
             return $ex;
          }
+     }
+
+     public function importDataMasterCuti(Request $request)
+     {
+        try
+        {
+	        // validasi
+            $this->validate($request, [
+                'file' => 'required|mimes:csv,xls,xlsx'
+            ]);
+     
+		    // menangkap file excel
+		    $file = $request->file('file');
+     
+		    // membuat nama file unik
+		    $nama_file = rand().$file->getClientOriginalName();
+
+		    // Excel::import(new karyawanImport, 'http://10.10.10.9:8099/storage/'.$nama_file);
+            Excel::import(new ImportCuti,$file);
+     
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Import Data Master Komplement Successfuly'
+            ]);
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
      }
 
 }

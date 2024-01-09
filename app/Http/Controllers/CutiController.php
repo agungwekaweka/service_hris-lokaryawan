@@ -45,6 +45,10 @@ class CutiController extends Controller
             }
             else
             {
+                    $tipeToleransiExpired ='-';
+                    $toleransiExpired ='-';
+                    $tglExpied='-';
+
                     // get tglExpied
                     $tglEnd = $this->getTglExpied($masaBerlaku,$tipeMasaBerlaku,$tglBerlaku);
                     // jika tipe cuti khusus maka jml hari menggunakan interval tanggal
@@ -81,6 +85,7 @@ class CutiController extends Controller
                     $data->date_expired = $tglExpied;
                     $data->is_dell = '1';
                     $data->save();
+                 
             }
 
             return 'data berhasil ditambahkan';

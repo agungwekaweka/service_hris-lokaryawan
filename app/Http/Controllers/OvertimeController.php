@@ -329,13 +329,13 @@ class OvertimeController extends Controller
      }
     
     // UPDATE
-    public function updateActionOvertimeMst($idOvertime_,$status_,$note_)
+    public function updateActionOvertimeMst($idOvertime_,$status_,$note_,$jamLembur_)
     {
         // declare variable
         $idOvertime = $idOvertime_;
         $status = $status_;
         $note = $note_;
-
+        $jamLembur = $jamLembur_;
         try {
             // cek data
             $dt = DB::table('overtime')
@@ -348,6 +348,7 @@ class OvertimeController extends Controller
                 DB::table('overtime')
                 ->where('id_overtime','=',$idOvertime)
                 ->update([
+                    'jam_lembur'=>$jamLembur,
                     'keterangan'=>$note,
                     'status' => $status,
                 ]);

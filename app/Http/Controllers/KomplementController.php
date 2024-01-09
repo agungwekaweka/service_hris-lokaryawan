@@ -159,17 +159,40 @@ class KomplementController extends Controller
         }
     }
 
-    public function getRequestKomplemenKaryawan($idKaryawan,$idKomplementTrn)
+    public function getRequestKomplemenKaryawan($idKaryawan,$idKomplementTrn,$name,$tglPengajuan,$tglKedatangan,$kodeBooking,$orderId)
     {
         try
         {
             $data_ = DB::table('komplement_trn')
             ->select('id_komplemen_trn','id_karyawan','name','email','no_hp','tanggal_pengajuan','tanggal_kedatangan','kode_booking','order_id','ticket_order','qty_total','payment_methods','payment_link','status')
-            ->where('id_karyawan',$idKaryawan)
             ->orderBy('id_komplemen_trn','asc');
             if($idKomplementTrn!='')
             {
                 $data_->where('id_komplemen_trn',$idKomplementTrn);
+            }
+            if($idKaryawan!='')
+            {
+                $data_->where('id_karyawan',$idKaryawan);
+            }
+            if($name!='')
+            {
+                $data_->where('name','like','%'.$name.'%');
+            }
+            if($tglPengajuan!='')
+            {
+                $data_->where('tanggal_pengajuan',$tglPengajuan);
+            }
+            if($tglKedatangan!='')
+            {
+                $data_->where('tanggal_kedatangan',$tglKedatangan);
+            }
+            if($kodeBooking!='')
+            {
+                $data_->where('kode_booking',$kodeBooking);
+            }
+            if($orderId!='')
+            {
+                $data_->where('order_id',$orderId);
             }
 
             if($data_->exists())

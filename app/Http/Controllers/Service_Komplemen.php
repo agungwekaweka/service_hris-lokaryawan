@@ -148,12 +148,18 @@ class Service_Komplemen extends Controller
 
     public function getRequestKomplemen(Request $request)
     {
-        $idKaryawan = $request->id_karyawan;
         $idKomplemenTrn = $request->id_komplement_trn;
+        $idKaryawan = $request->id_karyawan;
+        $name = $request->name;
+        $tglPengajuan = $request->tgl_pengajuan;
+        $tglKedatangan = $request->tgl_kedatangan;
+        $kodeBooking = $request->kode_booking;
+        $orderId = $request->order_id;
+      
         try
         {
             $c_komplementController = new KomplementController();
-            $data = $c_komplementController->getRequestKomplemenKaryawan($idKaryawan,$idKomplemenTrn);
+            $data = $c_komplementController->getRequestKomplemenKaryawan($idKaryawan,$idKomplemenTrn,$name,$tglPengajuan,$tglKedatangan,$kodeBooking,$orderId);
             $dataTicketOrder = null;
             if($idKomplemenTrn!='')
             {
