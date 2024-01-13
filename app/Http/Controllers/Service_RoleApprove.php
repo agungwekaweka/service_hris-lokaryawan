@@ -39,19 +39,27 @@ class Service_RoleApprove extends Controller
                     {
                         $listArray[]=$v->id_karyawan;
                     }
-                    
-                    $data = DB::table('users')
-                    ->select('users.departemen',
-                    'users.sub_departemen',
-                    'users.grade',
-                    'users.nik',
-                    'users.id_karyawan',
-                    'users.name',
+                
+                    $data = DB::table('role_approve')
+                    ->select(
+                    DB::raw('(select departemen from users where users.id_karyawan=role_approve.id_karyawan limit 1) as departemen'),
+                    DB::raw('(select sub_departemen from users where users.id_karyawan=role_approve.id_karyawan limit 1) as sub_departemen'),
+                    DB::raw('(select id_karyawan from users where users.id_karyawan=role_approve.id_karyawan limit 1) as id_karyawan'),
+                    DB::raw('(select grade from users where users.id_karyawan=role_approve.id_karyawan limit 1) as grade'),
+                    DB::raw('(select name from users where users.id_karyawan=role_approve.id_karyawan limit 1) as name'),
+                    DB::raw('(select no_telephone from users where users.id_karyawan=role_approve.id_karyawan limit 1) as no_telephone'),
+                    // 'users.departemen',
+                    // 'users.sub_departemen',
+                    // 'users.grade',
+                    // 'users.nik',
+                    // 'users.id_karyawan',
+                    // 'users.name',
                     'role_approve.type_approve',
                     'role_approve.id_approve')
                     ->where('users.approve','1')
+                    ->where('role_approve.type_role',$typeRole)
                     ->whereIn('users.id_karyawan',$listArray)
-                    ->join('role_approve','role_approve.id_karyawan','users.id_karyawan')
+                    ->join('users','users.id_karyawan','role_approve.id_karyawan')
                     ->orderBy('users.id_grade','asc')
                     ->orderBy('role_approve.type_approve','asc')
                     ->get();
