@@ -13,18 +13,19 @@ class OvertimeController extends Controller
 {
     // insert
     // menambahkan data lembur karyawan ke table master
-    public function insertOvertimeMst($idOvertime_,$idKaryawan_,$nip_,$tglPengajuan_,$tglLembur_,$jamLembur_,$totalJam_,$keterangan_)
+    public function insertOvertimeMst($request)
     {
         // declare variable
-        $idOvertime = $idOvertime_;
-        $idKaryawan = $idKaryawan_;
-        $nip = $nip_;
-        $tglPengajuan = $tglPengajuan_;
-        $tglLembur = $tglLembur_;
-        $jamLembur = $jamLembur_;
-        $totalJam = $totalJam_;
-        $keterangan = $keterangan_;
-    
+        $idOvertime = $request['id_overtime'];
+        $idKaryawan = $request['id_karyawan'];
+        $nip = '-';
+        $tglPengajuan = $request['tgl_pengajuan'];
+        $tglLembur = $request['tgl_lembur'];
+        $jamLembur = $request['jam_lembur'];
+        $jamMulai = $request['jam_mulai'];
+        $jamAkhir = $request['jam_akhir'];
+        $totalJam = 0;
+        $keterangan = $request['keterangan'];
         try {
             // cek data
             $dt = DB::table('overtime')
@@ -45,6 +46,8 @@ class OvertimeController extends Controller
                     $data->tgl_pengajuan = $tglPengajuan; 
                     $data->tgl_lembur = $tglLembur; 
                     $data->jam_lembur = $jamLembur; 
+                    $data->jam_awal = $jamMulai;
+                    $data->jam_akhir = $jamAkhir;
                     $data->total_jam = $totalJam; 
                     $data->keterangan = $keterangan;
                     // status 0=pending; 1=approve; 2=reject

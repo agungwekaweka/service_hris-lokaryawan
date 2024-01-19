@@ -231,11 +231,11 @@ class HODController extends Controller
             // update cuti_approve_history
             $c_overtimeController = new OvertimeController();
             $result_['update_actionCuti'] = $c_overtimeController->updateApproveHistory($idOvertime,$status,$note,$idKaryawanApprove,$tglApprove);
-
+        
             // get data overtime by ID Trn
             $c_overtimeController = new OvertimeController();
             $result_['get_dataOvertimeByID'] = $c_overtimeController->getOvertimeRequest($idOvertime,'');
-    
+        
             $telephone = $result_['get_dataOvertimeByID'][0]->no_telephone;
             $nik = $result_['get_dataOvertimeByID'][0]->nik;
             $idKaryawan = $result_['get_dataOvertimeByID'][0]->id_karyawan;
@@ -246,12 +246,12 @@ class HODController extends Controller
             // convert Jam lembur
             $c_toolsConvert = new ToolsConvert();
             $jamLembur = $c_toolsConvert->convertInputTypeDecimalOrInterger($jmLembur);
-            
+          
              // cek apakah masih ada history approve yg belum di setujui
              $c_overtimeController =new OvertimeController();
              //  0=pending, 1=approve, 2=reject
              $result_['get_approve_history'] = $c_overtimeController->getApproveHistory(0,$idOvertime);
-            
+          
              if($result_['get_approve_history']==null)
              {
                 // data sudah fix di setujui semua HOD
@@ -260,18 +260,17 @@ class HODController extends Controller
                 // status 0=pending, 1=approve, 2=reject
                 $result_['update_masterOvertime'] = $c_overtimeController->updateActionOvertimeMst($idOvertime,$status,$note);
 
-               // insert tanggal overtime di aplikasi Payroll
-               $c_apiGuzzle = new API_Guzzle();
-               $var = 'update_jadwal_karyawan';
-               $result_['insert_overtime_payroll'] = $c_apiGuzzle->postServiceLokaHR($var,$nip,$tanggal,$keterangan,$valueKehadiran);
-              
+                // insert tanggal overtime di aplikasi Payroll
+                $c_apiGuzzle = new API_Guzzle();
+                $var = 'update_jadwal_karyawan';
+                $result_['insert_overtime_payroll'] = $c_apiGuzzle->postServiceLokaHR($var,$nip,$tanggal,$keterangan,$valueKehadiran);
+                
                 // sent whatsapp message
                 $c_sentWaController = new SentWhatsappController();
                 $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappOvertimeDiterima($idOvertime,$telephone,$idKaryawan,$tanggalLembur,$jamLembur,$keterangan);
-                
             }
-             else
-             {
+            else
+            {
                 // update master overtime jika hod mengubah jam Lembur
                 $c_overtimeController = new OvertimeController();
                 // status 0=pending
@@ -284,9 +283,8 @@ class HODController extends Controller
                 // sent whatsapp message
                 $c_sentWaController = new SentWhatsappController();
                 $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveOvertime($idOvertime,$telephone,$idKaryawan,$tanggalLembur,$jamLembur,$keterangan);
-             }
+            }
         }
-       
         return $result_;
     }
 }

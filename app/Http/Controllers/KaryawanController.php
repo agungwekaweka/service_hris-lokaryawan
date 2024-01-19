@@ -103,10 +103,9 @@ class KaryawanController extends Controller
             // cek sisa cuti in Master
             $c_cuti = new CutiController();
             $dt = $c_cuti->getCutiKaryawan($idKaryawan, $tahun,$idCuti);
-
+          
             foreach($dt as $x)
             {
-        
                 $idMst = $x->id_cuti_mst;
                 $sisaCutiDB = $x->sisa_cuti;
                 break;
@@ -331,7 +330,7 @@ class KaryawanController extends Controller
 
     private function disableDataKaryawan($idAbsen)
     {
-        $c_users = new Users();
+        $c_users = new UsersController();
         $result_['disable_MasterUsers'] = $c_users->disableUsers($idAbsen);
 
         // $c_cuti = new CutiController();
@@ -671,6 +670,8 @@ class KaryawanController extends Controller
         $idKaryawan = $request->id_karyawan;
         $tglLembur = $request->tgl_lembur;
         $jamLembur = $request->jam_lembur;
+        $jamMulai = $request->jam_mulai;
+        $jamAkhir = $request->jam_akhir;
         $keterangan = $request->keterangan;
 
         try {
@@ -684,7 +685,16 @@ class KaryawanController extends Controller
             $idOvertime = $c_generateID->getIDOvertimeMst();
         
             // insert ke table master overtime
-            $result_['insert_OvertimeMst'] = $this->insertOvertimeMst($idOvertime,$idKaryawan,$tglPengajuan,$tglLembur,$jamLembur,$keterangan);
+            $request=[];
+            $request['id_overtime'] = $idOvertime;
+            $request['tgl_pengajuan'] = $tglPengajuan;
+            $request['id_karyawan'] = $idKaryawan;
+            $request['tgl_lembur'] = $tglLembur;
+            $request['jam_lembur'] = $jamLembur;
+            $request['jam_mulai'] = $jamMulai;
+            $request['jam_akhir'] = $jamAkhir;
+            $request['keterangan'] = $keterangan;
+            $result_['insert_OvertimeMst'] = $this->insertOvertimeMst($request);
             
             $result=response()->json([
                 'status' => 'success',
@@ -699,12 +709,19 @@ class KaryawanController extends Controller
     }
 
     // function Overtime ------------------------------------------
-    private function insertOvertimeMst($idOvertime,$idKaryawan,$tglPengajuan,$tglLembur,$jamLembur,$keterangan)
+    private function insertOvertimeMst($request)
     {
-        $nip='-';
-        $totalJam = 0;
+        $idOvertime = $request['id_overtime'];
+        $idKaryawan = $request['id_karyawan'];
+        $tglPengajuan = $request['tgl_pengajuan'];
+        $tglLembur = $request['tgl_lembur'];
+        $jamLembur = $request['jam_lembur'];
+        $jamMulai = $request['jam_mulai'];
+        $jamAkhir = $request['jam_akhir'];
+        $keterangan = $request['keterangan'];
+
         $c_overtimeController = new OvertimeController();
-        $result_['insert_OvertimeMst'] = $c_overtimeController->insertOvertimeMst($idOvertime,$idKaryawan,$nip,$tglPengajuan,$tglLembur,$jamLembur,$totalJam,$keterangan);
+        $result_['insert_OvertimeMst'] = $c_overtimeController->insertOvertimeMst($request);
        
         // get list approve up Level
         $c_grade = new GradeController();

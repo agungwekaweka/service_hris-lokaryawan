@@ -18,7 +18,10 @@ class SentWhatsappController extends Controller
 
     private function getWatermarkFooter()
     {
-        return '[sent by Bot Loka]';
+        $message = "https://lokaryawan.salokapark.app/notification". " \n\n".
+        "[sent by Bot Loka]";
+
+        return $message;
     }
 
     private function getBodyCuti($namaPenerima,$idCuti,$nama,$departemen,$subDepartemen,$typeCuti,$tanggalCuti,$note)
@@ -163,7 +166,7 @@ class SentWhatsappController extends Controller
 
         // declare variable
         $telephone = $telephone_;
-        $message = getBodyOvertime($namaPenerima,$idOvertime,$nama,$departemen,$subDepartemen,$tanggalLembur,$jamLembur,$keterangan).
+        $message = $this->getBodyOvertime($namaPenerima,$idOvertime,$nama,$departemen,$subDepartemen,$tanggalLembur,$jamLembur,$keterangan).
         "Mohon untuk dapat melakukan pengecekan dan *Approval/Reject* permintaan tersebut."." \n"."Matur Nuwum."." \n\n".$this->getWatermarkFooter();
 
         $result_ = $this->sentWA($telephone,$message);

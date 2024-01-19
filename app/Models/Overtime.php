@@ -16,6 +16,8 @@ class Overtime extends Model
         'tgl_pengajuan',
         'tgl_lembur',
         'jam_lembur',
+        'jam_awal',
+        'jam_akhir',
         'total_jam',
         'status',
         'is_dell'

@@ -104,21 +104,39 @@ class GenerateIDController extends Controller
         return $id;
     }
 
-    // belum jadi di pastikan
-    public function getBookingCode($idKaryawan)
+    public function getIDRoleApprove($request)
     {
+        $idDepartemen = $request['id_departemen'];
+        $typeRole = $request['type_role'];
+
         $id='-';
-        $prefix = $idKaryawan .date('ymd');
-        $prefixSubs = substr($prefix,0,6);
-    
-        $count = DB::table('komplement_trn')
+        $prefix = $typeRole.'-'.$idDepartemen;
+
+        $count = DB::table('role_approve')
         ->select(DB::raw('COUNT(ID) as count'))
-        ->where('id_karyawan',$idKaryawan)
-        ->where('kode_booking','like','%'.$prefixSubs.'%')
+        ->where('id_role_approve','like','%'.$prefix.'%')
         ->first();
-       
-        $formattedNumber = str_pad($count->count, 4, '0', STR_PAD_LEFT);
-        $id = $prefix.$formattedNumber;
+        
+        $formattedNumber = str_pad($count->count, 2, '0', STR_PAD_LEFT);
+        $id = $prefix.'-'.$formattedNumber;
         return $id;
     }
+
+    // belum jadi di pastikan ---------------------
+    // public function getBookingCode($idKaryawan)
+    // {
+    //     $id='-';
+    //     $prefix = $idKaryawan .date('ymd');
+    //     $prefixSubs = substr($prefix,0,6);
+    
+    //     $count = DB::table('komplement_trn')
+    //     ->select(DB::raw('COUNT(ID) as count'))
+    //     ->where('id_karyawan',$idKaryawan)
+    //     ->where('kode_booking','like','%'.$prefixSubs.'%')
+    //     ->first();
+       
+    //     $formattedNumber = str_pad($count->count, 4, '0', STR_PAD_LEFT);
+    //     $id = $prefix.$formattedNumber;
+    //     return $id;
+    // }
 }

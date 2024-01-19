@@ -81,8 +81,7 @@ use Illuminate\Support\Facades\Session;
         Route::get('get_request_overtime_ByID', 'getRequestOvertimeByID'); 
         // get data request overtime
         Route::get('get_request_overtime', 'getRequestOvertime'); 
-    });
-    
+    });    
 // });
 
 // Service LokaHR
@@ -131,8 +130,12 @@ Route::controller(Service_Komplemen::class)->group(function () {
 Route::controller(Service_RoleApprove::class)->group(function () {
     Route::get('cek_role_approve_karyawan','cekRoleApproveKaryawan');
     Route::get('get_list_role_approve','getListRoleApprove');
-});
 
+    Route::post('create_role_approve','createRoleApprove');
+    Route::post('create_role_approve_all','createRoleApproveAll');
+    
+    Route::post('update_pic_approve','updatePicApprove');
+});
 
 // CronJob
 // update masa berlaku Cuti

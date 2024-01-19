@@ -73,6 +73,8 @@ class UsersController extends Controller
             'users.sub_departemen',
             'users.id_grade',
             'users.grade',
+            'users.approve',
+            'users.type_approve',
             'grade.approve_level_up',
             'grade.approve_level_down',
             'users.name',
