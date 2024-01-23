@@ -17,11 +17,8 @@ class SentWhatsappController extends Controller
     }
 
     private function getWatermarkFooter()
-    {
-        $message = "https://lokaryawan.salokapark.app/notification". " \n\n".
-        "[sent by Bot Loka]";
-
-        return $message;
+    {   
+        return "[sent by Bot Loka]";
     }
 
     private function getBodyCuti($namaPenerima,$idCuti,$nama,$departemen,$subDepartemen,$typeCuti,$tanggalCuti,$note)
@@ -33,7 +30,7 @@ class SentWhatsappController extends Controller
         "Dept/Sub Dept : \n".$departemen." / ".$subDepartemen." \n\n".
         "Tipe Cuti : \n".$typeCuti." \n\n".
         "Tanggal Cuti : \n".$tanggalCuti." \n\n".
-        "Note : \n".$note." \n\n\n";
+        "Note : \n".$note." \n\n";
         return $message;
     }
 
@@ -58,8 +55,7 @@ class SentWhatsappController extends Controller
         "Tanggal Pengajuan : \n*".$tanggalPengajuan."* \n\n".
         "Tanggal Kedatangan : \n*".$tanggalKedatangan."* \n\n".
         "Total Tiket : \n*".$totalTiket."* \n\n".
-        "Kode Booking : \n*".$kodeBooking ."* \n\n".
-        "Silahkan Cetak Tiket Melalui KIOSK, Matur Nuwum."." \n\n".$this->getWatermarkFooter();
+        "Kode Booking : \n*".$kodeBooking ."* \n\n";
         return $message;
     }
 
@@ -86,7 +82,9 @@ class SentWhatsappController extends Controller
         // declare variable
         $telephone = $telephone_;
         $message = $this->getBodyCuti($namaPenerima,$idCuti,$nama,$departemen,$subDepartemen,$typeCuti_,$tanggalCuti,$note).
-        "Mohon untuk dapat melakukan pengecekan dan *Approval/Reject* permintaan tersebut."." \n"."Matur Nuwum."." \n\n".$this->getWatermarkFooter();
+        "Mohon untuk dapat melakukan pengecekan dan *Approval/Reject* permintaan tersebut."." \n"."Matur Nuwum."." \n\n".
+        "Link Aplikasi : https://lokaryawan.salokapark.app/notification". " \n".
+        $this->getWatermarkFooter();
         $result_ = $this->sentWA($telephone,$message);
         return $result_;
     }
@@ -105,10 +103,17 @@ class SentWhatsappController extends Controller
         $tanggalCuti = $this->convertTanggal($tanggalCuti_);
         $note = $note_;
 
+        // get Data User Recipient
+        $c_users = new UsersController();
+        $dtUserRecipient = $c_users->getDataByNoHp($telephone_);
+        $namaPenerima = $dtUserRecipient->name;
+
         // declare variable
         $telephone = $telephone_;
         $message = $this->getBodyCuti($namaPenerima,$idCuti,$nama,$departemen,$subDepartemen,$typeCuti_,$tanggalCuti,$note).
-        "*DiReject*"." \n"."Matur Nuwum."." \n\n".$this->getWatermarkFooter();
+        "Status Cuti : *DiReject*"." \n"."Matur Nuwum."." \n\n".
+        "Link Aplikasi : https://lokaryawan.salokapark.app". " \n".
+        $this->getWatermarkFooter();
 
         $result_ = $this->sentWA($telephone,$message);
         return $result_;
@@ -136,7 +141,9 @@ class SentWhatsappController extends Controller
          // declare variable
          $telephone = $telephone_;
          $message = $this->getBodyCuti($namaPenerima,$idCuti,$nama,$departemen,$subDepartemen,$typeCuti_,$tanggalCuti,$note).
-         "Diterima"." \n"."Matur Nuwum."." \n\n".$this->getWatermarkFooter();
+         "Status Cuti : *Diterima*"." \n"."Matur Nuwum."." \n\n".
+         "Link Aplikasi : https://lokaryawan.salokapark.app". " \n".
+         $this->getWatermarkFooter();
          
          $result_ = $this->sentWA($telephone,$message);
          return $result_;
@@ -167,7 +174,9 @@ class SentWhatsappController extends Controller
         // declare variable
         $telephone = $telephone_;
         $message = $this->getBodyOvertime($namaPenerima,$idOvertime,$nama,$departemen,$subDepartemen,$tanggalLembur,$jamLembur,$keterangan).
-        "Mohon untuk dapat melakukan pengecekan dan *Approval/Reject* permintaan tersebut."." \n"."Matur Nuwum."." \n\n".$this->getWatermarkFooter();
+        "Mohon untuk dapat melakukan pengecekan dan *Approval/Reject* permintaan tersebut."." \n"."Matur Nuwum."." \n\n".
+        "Link Aplikasi : https://lokaryawan.salokapark.app/notification". " \n".
+        $this->getWatermarkFooter();
 
         $result_ = $this->sentWA($telephone,$message);
         return $result_;
@@ -198,7 +207,9 @@ class SentWhatsappController extends Controller
         $telephone = $telephone_;
         $telephone = $telephone_;
         $message = $this->getBodyOvertime($namaPenerima,$idOvertime,$nama,$departemen,$subDepartemen,$tanggalLembur,$jamLembur,$keterangan).
-        "Diterima"." \n"."Matur Nuwum."." \n\n".$this->getWatermarkFooter();
+        "Status Overtime : Diterima"." \n"."Matur Nuwum."." \n\n".
+        "Link Aplikasi : https://lokaryawan.salokapark.app". " \n".
+        $this->getWatermarkFooter();
 
         $result_ = $this->sentWA($telephone,$message);
         return $result_;
@@ -228,7 +239,9 @@ class SentWhatsappController extends Controller
         // declare variable
         $telephone = $telephone_;
         $message = $this->getBodyOvertime($namaPenerima,$idOvertime,$nama,$departemen,$subDepartemen,$tanggalLembur,$jamLembur,$keterangan).
-        "*DiReject*"." \n"."Matur Nuwum."." \n\n".$this->getWatermarkFooter();
+        "Status Overtime : *DiReject*"." \n"."Matur Nuwum."." \n\n".
+        "Link Aplikasi : https://lokaryawan.salokapark.app". " \n".
+        $this->getWatermarkFooter();
 
         $result_ = $this->sentWA($telephone,$message);
         return $result_;
@@ -244,7 +257,7 @@ class SentWhatsappController extends Controller
 
         // get Data Komplement
         $c_komplementController = new KomplementController();
-        $dtKomplement = $c_komplementController->getRequestKomplemenKaryawan($idKaryawan_,$idKomplement);
+        $dtKomplement = $c_komplementController->getRequestKomplemenKaryawan($idKaryawan_,$idKomplement,'','','','','');
   
         $tanggalPengajuan = $dtKomplement[0]->tanggal_pengajuan;
         $c_toolsDateClass = new ToolsDateClass();
@@ -254,7 +267,9 @@ class SentWhatsappController extends Controller
 
         // declare variable
         $message = $this->getBodyTicket($namaPenerima,$idKomplement,$tanggalPengajuan,$tanggalKedatangan,$totalTiket,$kodeBooking).
-        "Silahkan Cetak Tiket Melalui KIOSK, Matur Nuwum."." \n\n".$this->getWatermarkFooter();
+        "Silahkan Cetak Tiket Melalui KIOSK, Matur Nuwum."." \n\n".
+        "Link Aplikasi : https://lokaryawan.salokapark.app". " \n".
+        $this->getWatermarkFooter();
 
         $result_ = $this->sentWA($telephone,$message);
         return $result_;
@@ -280,7 +295,9 @@ class SentWhatsappController extends Controller
 
         // declare variable
         $message = $this->getBodyTicket($namaPenerima,$idKomplement,$tanggalPengajuan,$tanggalKedatangan,$totalTiket,$kodeBooking).
-        "Silahkan Cek Kembali Pembayaran Anda, Matur Nuwum."." \n\n".$this->getWatermarkFooter();
+        "Silahkan Cek Kembali Pembayaran Anda, Matur Nuwum."." \n\n".
+        "Link Aplikasi : https://lokaryawan.salokapark.app". " \n".
+        $this->getWatermarkFooter();
 
         $result_ = $this->sentWA($telephone,$message);
         return $result_;

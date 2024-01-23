@@ -89,6 +89,7 @@ class KaryawanController extends Controller
         $keterangan = $request->keterangan;
     
         try {
+            DB::beginTransaction();
             // insert cuti
             $tahun = Carbon::now()->format('Y');
             $idPeriode = '-';
@@ -119,7 +120,20 @@ class KaryawanController extends Controller
                 $c_generateID = new GenerateIDController();
                 $idTrn = $c_generateID->getIDCutiTrn($idCuti);
 
-                $req = $this->insertCutiTRN($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status);
+                $request['id_mst'] = $idMst;
+                $request['id_trn'] = $idTrn;
+                $request['id_cuti'] = $idCuti;
+                $request['id_periode'] = $idPeriode;
+                $request['tahun'] = $tahun;
+                $request['id_karyawan'] = $idKaryawan;
+                $request['tipe_cuti'] = $tipeCuti;
+                $request['cuti'] = $cuti;
+                $request['tanggal'] = $tanggal;
+                $request['total_cuti'] = $totalCuti;
+                $request['keterangan'] = $keterangan;
+                $request['tgl_pengajuan'] = $tglPengajuan;
+                $request['status'] = $status;
+                $req = $this->insertCutiTRN($request);
                 $result=response()->json([
                     'status' => 'success',
                     'message' => 'Request Cuti Karyawan Successfuly',
@@ -133,9 +147,10 @@ class KaryawanController extends Controller
                     'message' => 'Sisa Cuti Anda sudah Tidak Mencukupi, Cuti Tersisa : '.$sisaCutiDB,
                 ]);
             }
-
+            DB::commit();
             return $result;
         } catch (\Exception $ex) {
+            DB::roollBack();
             return $ex;
         }
     }
@@ -237,8 +252,22 @@ class KaryawanController extends Controller
         return $result_;
     }
 
-    private function insertCutiTRN($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status)
+    private function insertCutiTRN($request)
     {  
+        $idMst = $request['id_mst'];
+        $idTrn= $request['id_trn'];
+        $idCuti= $request['id_cuti'];
+        $idPeriode = $request['id_periode'];
+        $tahun = $request['tahun'];
+        $idKaryawan = $request['id_karyawan'];
+        $tipeCuti = $request['tipe_cuti'];
+        $cuti = $request['cuti'];
+        $tanggal = $request['tanggal'];
+        $totalCuti = $request['total_cuti'];
+        $keterangan = $request['keterangan'];
+        $tglPengajuan = $request['tgl_pengajuan'];
+        $status = $request['status'];
+
         // insert data
         $c_cuti = new CutiController();
         $result_['insert_cutiDB'] = $c_cuti->insetCutiTrn($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status);
@@ -251,7 +280,7 @@ class KaryawanController extends Controller
         $c_grade = new GradeController();
         $typeRole = '0'; // 0 digunakan untuk role Cuti
         $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan,$typeRole);
-
+       
         if($lstApproveGradeUp!=null)
         {
             $firstLoad=true;
@@ -262,17 +291,17 @@ class KaryawanController extends Controller
                 $telephone = $v->no_telephone;
                 $idKaryawanApprove = $v->id_karyawan;
                 $tglApprove = '0000-00-00';
-                $note = '-';
+
                 if($firstLoad==true)
                 {
                     // sent whatsapp message
                     $c_sentWaController = new SentWhatsappController();
-                    $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($idTrn,$telephone,$idKaryawan,$cuti,$tanggal,$note);
+                    $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCuti($idTrn,$telephone,$idKaryawan,$cuti,$tanggal,$keterangan);
                 }
                 $firstLoad=false;
                 //insert list Approve up Level
                 $c_cuti = new CutiController();
-                $result_['insert_approveHistory'] = $c_cuti->insertCutiApproveHistory($idTrn, $status, $telephone, $idKaryawanApprove, $tglApprove, $note);
+                $result_['insert_approveHistory'] = $c_cuti->insertCutiApproveHistory($idTrn, $status, $telephone, $idKaryawanApprove, $tglApprove, $keterangan);
             }
         }
         else
@@ -284,11 +313,25 @@ class KaryawanController extends Controller
     }
 
     // insert Cuti Khusus
-    private function insertCutiTRN_khusus($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status)
+    private function insertCutiTRN_khusus($request)
     {  
+        $idMst = $request['id_mst'];
+        $idTrn = $request['id_trn'];
+        $idCuti = $request['id_cuti'];
+        $idPeriode = $request['id_periode'];
+        $tahun = $request['tahun'];
+        $idKaryawan = $request['id_karyawan'];
+        $tipeCuti = $request['tipe_cuti'];
+        $cuti = $request['cuti'];
+        $tanggal = $request['tanggal'];
+        $sisaCuti = $request['sisa_cuti'];
+        $keterangan = $request['keterangan'];
+        $tglPengajuan = $request['tgl_pengajuan'];
+        $status= $request['status'];
+
         // insert data
         $c_cuti = new CutiController();
-        $result_['insert_cutiDB'] = $c_cuti->insetCutiTrn($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$totalCuti,$keterangan,$tglPengajuan,$status);
+        $result_['insert_cutiDB'] = $c_cuti->insetCutiTrn($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$sisaCuti,$keterangan,$tglPengajuan,$status);
 
         // update data master cuti
         $c_cuti = new CutiController();
@@ -372,6 +415,7 @@ class KaryawanController extends Controller
 
         try
         {
+            DB::beginTransaction();
             // insert cuti
             $tahun = Carbon::now()->format('Y');
             $idPeriode = '-';
@@ -414,7 +458,21 @@ class KaryawanController extends Controller
                 // generate ID
                 $c_generateID = new GenerateIDController();
                 $idTrn = $c_generateID->getIDCutiTrn($idCuti);
-                $result_['insert_cutiTRN'] = $this->insertCutiTRN_khusus($idMst,$idTrn,$idCuti, $idPeriode,$tahun,$idKaryawan,$tipeCuti,$cuti,$tanggal,$sisaCuti,$keterangan,$tglPengajuan,$status);
+
+                $request['id_mst'] = $idMst;
+                $request['id_trn'] = $idTrn;
+                $request['id_cuti'] = $idCuti;
+                $request['id_periode'] = $idPeriode;
+                $request['tahun'] = $tahun;
+                $request['id_karyawan'] = $idKaryawan;
+                $request['tipe_cuti'] = $tipeCuti;
+                $request['cuti'] = $cuti;
+                $request['tanggal'] = $tanggal;
+                $request['sisa_cuti'] = $sisaCuti;
+                $request['keterangan'] = $keterangan;
+                $request['tgl_pengajuan'] = $tglPengajuan;
+                $request['status'] = $status;
+                $result_['insert_cutiTRN'] = $this->insertCutiTRN_khusus($request);
                 
                 // insert Image
                 if($lampiranFile!='') {
@@ -436,9 +494,10 @@ class KaryawanController extends Controller
                 'message' => 'Request Cuti Karyawan Successfuly',
                 'callback' => $result_
             ]);
-
+            DB::commit();
             return $result;
         } catch (\Exception $ex) {
+            DB::rollBack();
             return $ex;
         }
     } 
@@ -452,6 +511,7 @@ class KaryawanController extends Controller
         $totalKomplement = $request->total_komplemen;
         $paymentMethods = $request->payment_methods;
         try {
+            DB::beginTransaction();
             // insert cuti
             $tahun = Carbon::now()->format('Y');
             $tglPengajuan = Carbon::now()->format('Y-m-d H:i:s');
@@ -562,11 +622,10 @@ class KaryawanController extends Controller
                 'message' => 'Request Komplemen Karyawan Successfuly',
                 'callback' => $result_
             ]);
-
+            DB::commit();
             return $result;
-
-
         } catch (\Exception $ex) {
+            DB::rollBack();
             return $ex;
         }
     }

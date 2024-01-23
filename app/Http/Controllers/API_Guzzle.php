@@ -52,7 +52,6 @@ class API_Guzzle extends Controller
     }
 
     // --------------------------------------------------------------------------------
-
     // GET SERVICE
     // server LOKAHR
     public function getServiceLokaHR($var)

@@ -9,6 +9,7 @@ use Carbon\Carbon;
 
 class Service_RoleApprove extends Controller
 {
+    // Create Role Approve All Departemen (0=role cuti; 1=role lembur)
     public function createRoleApproveAll(Request $request)
     {
         $typeRole = $request->type_role;
@@ -90,6 +91,7 @@ class Service_RoleApprove extends Controller
         }
     }
 
+    // Create Struktur Role Approve(Custom)
     public function createRoleApprove(Request $request)
     {
         $idDepartemen = $request->id_departemen;
@@ -122,6 +124,7 @@ class Service_RoleApprove extends Controller
         }
     }
 
+    // update pic struktur role approve( BY ID Role Approve, By ID Departemen, By ID Sub Departemen)
     public function updatePicApprove(Request $request)
     {
         $id = $request->id;
@@ -130,7 +133,6 @@ class Service_RoleApprove extends Controller
         $idGrade = $request->id_grade;
         $pic = $request->pic;
         // $typeRole = $request->type_role;
-
         try
         {
             $request['id'] = $id;
@@ -147,6 +149,7 @@ class Service_RoleApprove extends Controller
         }
     }
 
+    // mengambil data struktur role approve (by Departemen, By ID Departemen)
     public function getListRoleApprove(Request $request)
      {
         $idDepartemen = $request->id_departemen;
@@ -173,6 +176,7 @@ class Service_RoleApprove extends Controller
         }
      }
 
+    //  cek Approve atasan by ID Karyawan dan tipe role approve (0=cuti;1=lembur)
      public function cekRoleApproveKaryawan(Request $request)
      {
         $typeRole = $request->type_role;
