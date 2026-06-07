@@ -92,59 +92,127 @@ class Service_Komplemen extends Controller
          }
      }
 
-     public function getListMasterKomplemen(Request $request)
-     {
-        $tahun = $request->tahun;
-        $idKaryawan = $request->id_karyawan;
+    //  public function getListMasterKomplemen(Request $request)
+    //  {
+    //     $tahun = $request->tahun;
+    //     $idKaryawan = $request->id_karyawan;
 
-         try
-         {
-             $data_ = DB::table('komplement_mst')
-             ->select(
-            'users.is_dell as status',
-             'users.departemen',
-             'users.sub_departemen',
-             'users.grade',
-             'users.name',
-             'komplement_mst.id_karyawan','komplement_mst.tahun',
-             DB::raw("(select tipe_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='40' limit 1) as tipe_komplement_gratis"),
-             DB::raw("(select sisa_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='40' limit 1) as sisa_komplement_gratis"),
-             DB::raw("(select tipe_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='288' limit 1) as tipe_komplement_bayar"),
-             DB::raw("(select sisa_komplement from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='288' limit 1) as sisa_komplement_bayar"),
-             DB::raw("(select date_start from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='40' limit 1) as date_start"),
-             DB::raw("(select date_end from komplement_mst where id_karyawan = komplement_mst.id_karyawan and id_komplement='40' limit 1) as date_end") 
-             )
-             ->join('users','users.id_karyawan','komplement_mst.id_karyawan')
-             ->where('komplement_mst.is_dell','1');
-             if($data_->exists())
-             {       
-                if($idKaryawan !='')
-                {
-                    $data_->where('komplement_mst.id_karyawan',$idKaryawan);
-                }
-                    $data_->where('komplement_mst.tahun',$tahun);
-                    $data_->distinct('komplement_mst.id_karyawan');
-                    $data_->orderBy('users.nik','asc');
-                    $data = $data_->get();
-                    $result=response()->json([
-                        'status' => 'success',
-                        'message' => 'Get Data Master Cuti Successfuly',
-                        'data' => $data
-                    ]);
-             }
-             else
-             {
-                 $result=response()->json([
-                     'status' => 'failed',
-                     'message' => 'Get Data Master Cuti Not Successfuly',
-                 ]);
-             }
+    //      try
+    //      {
+    //          $data_ = DB::table('komplement_mst')
+    //          ->select(
+    //          'users.is_dell as status',
+    //          'users.departemen',
+    //          'users.sub_departemen',
+    //          'users.grade',
+    //          'users.name',
+    //          'komplement_mst.id_karyawan','komplement_mst.tahun',
+    //          DB::raw("(select tipe_komplement from komplement_mst x where x.id_karyawan = komplement_mst.id_karyawan and x.id_komplement='40' limit 1) as tipe_komplement_gratis"),
+    //          DB::raw("(select sisa_komplement from komplement_mst x where x.id_karyawan = komplement_mst.id_karyawan and x.id_komplement='40' limit 1) as sisa_komplement_gratis"),
+    //          DB::raw("(select tipe_komplement from komplement_mst x where x.id_karyawan = komplement_mst.id_karyawan and id_komplement='288' limit 1) as tipe_komplement_bayar"),
+    //          DB::raw("(select sisa_komplement from komplement_mst x where x.id_karyawan = komplement_mst.id_karyawan and id_komplement='288' limit 1) as sisa_komplement_bayar"),
+    //          DB::raw("(select date_start from komplement_mst x where x.id_karyawan = komplement_mst.id_karyawan and x.id_komplement='40' limit 1) as date_start"),
+    //          DB::raw("(select date_end from komplement_mst x where x.id_karyawan = komplement_mst.id_karyawan and x.id_komplement='40' limit 1) as date_end") 
+    //          )
+    //          ->join('users','users.id_karyawan','komplement_mst.id_karyawan')
+    //          ->where('komplement_mst.is_dell','1');
+    //          if($data_->exists())
+    //          {       
+    //             if($idKaryawan !='')
+    //             {
+    //                 $data_->where('komplement_mst.id_karyawan',$idKaryawan);
+    //             }
+    //                 $data_->where('komplement_mst.tahun',$tahun);
+    //                 $data_->distinct('komplement_mst.id_karyawan');
+    //                 $data_->orderBy('users.nik','asc');
+    //                 $data = $data_->get();
+    //                 $result=response()->json([
+    //                     'status' => 'success',
+    //                     'message' => 'Get Data Master Cuti Successfuly',
+    //                     'data' => $data
+    //                 ]);
+    //          }
+    //          else
+    //          {
+    //              $result=response()->json([
+    //                  'status' => 'failed',
+    //                  'message' => 'Get Data Master Cuti Not Successfuly',
+    //              ]);
+    //          }
  
-             return $result;
-         } catch (\Exception $ex) {
-             return $ex;
-         }
-     }
+    //          return $result;
+    //      } catch (\Exception $ex) {
+    //          return $ex;
+    //      }
+    //  }
+    
+    public function getListMasterKomplemen(Request $request)
+{
+    $tahun = $request->tahun;
+    $idKaryawan = $request->id_karyawan;
+
+    try {
+        $data_ = DB::table('users')
+            ->select(
+                'users.is_dell as status',
+                'users.departemen',
+                'users.sub_departemen',
+                'users.grade',
+                'users.name',
+                'k.id_karyawan',
+                'k.tahun',
+                'kGratis.tipe_komplement as tipe_komplement_gratis',
+                'kGratis.sisa_komplement as sisa_komplement_gratis',
+                'kGratis.date_start as date_start',
+                'kGratis.date_end as date_end',
+                'kBayar.tipe_komplement as tipe_komplement_bayar',
+                'kBayar.sisa_komplement as sisa_komplement_bayar'
+            )
+            ->join('komplement_mst as k', function ($join) use ($tahun) {
+                $join->on('users.id_karyawan', '=', 'k.id_karyawan')
+                     ->where('k.is_dell', '1')
+                     ->where('k.tahun', $tahun);
+            })
+            ->leftJoin('komplement_mst as kGratis', function ($join) use ($tahun) {
+                $join->on('users.id_karyawan', '=', 'kGratis.id_karyawan')
+                     ->where('kGratis.id_komplement', '40')
+                     ->where('kGratis.tahun', $tahun);
+            })
+            ->leftJoin('komplement_mst as kBayar', function ($join) use ($tahun) {
+                $join->on('users.id_karyawan', '=', 'kBayar.id_karyawan')
+                     ->where('kBayar.id_komplement', '288')
+                     ->where('kBayar.tahun', $tahun);
+            });
+
+        if (!empty($idKaryawan)) {
+            $data_->where('k.id_karyawan', $idKaryawan);
+        }
+
+        $data = $data_->orderBy('users.nik', 'asc')
+                      ->distinct('k.id_karyawan')
+                      ->get();
+
+        if ($data->isEmpty()) {
+            return response()->json([
+                'status'  => 'failed',
+                'message' => 'Get Data Master Komplement Not Successful',
+            ]);
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Get Data Master Komplement Successfully',
+            'data'    => $data
+        ]);
+
+    } catch (\Exception $ex) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => $ex->getMessage(),
+        ], 500);
+    }
+}
+
 
     public function getRequestKomplemen(Request $request)
     {
@@ -258,25 +326,30 @@ class Service_Komplemen extends Controller
             // update reservation Ticket
             $c_komplementController = new KomplementController();
             $result_['update_reservationTicket'] = $c_komplementController->updateReservationTicket($orderID,$kodeBooking,$status);
-
-            $c_komplementController = new KomplementController();
-            $dataKomplement = $c_komplementController->getKomplemenKaryawanByOrderID($orderID);
-            $idKomplement = $dataKomplement->id_komplemen_trn;
-            $idKaryawan = $dataKomplement->id_karyawan;
-
-            // sent whatsapp 
-            $c_sentWhatsappController = new SentWhatsappController();
-            if($status =='3')
+            if($result_['update_reservationTicet']==false)
             {
-                // expeied
-                $result_['sent_whatsapp'] = $c_sentWhatsappController->sentWhatsappErrorTicket($idKomplement,$idKaryawan,'Expired Ticket');
+                $result_='Double Data';
             }
-            elseif($status =='1')
+            else
             {
-                // settlement
-                $result_['sent_whatsapp'] = $c_sentWhatsappController->sentWhatsappKodeBookingTicket($idKomplement,$idKaryawan);
+                $c_komplementController = new KomplementController();
+                $dataKomplement = $c_komplementController->getKomplemenKaryawanByOrderID($orderID);
+                $idKomplement = $dataKomplement->id_komplemen_trn;
+                $idKaryawan = $dataKomplement->id_karyawan;
+    
+                // sent whatsapp 
+                $c_sentWhatsappController = new SentWhatsappController();
+                if($status =='3')
+                {
+                    // expeied
+                    $result_['sent_whatsapp'] = $c_sentWhatsappController->sentWhatsappErrorTicket($idKomplement,$idKaryawan,'Expired Ticket');
+                }
+                elseif($status =='1')
+                {
+                    // settlement
+                    $result_['sent_whatsapp'] = $c_sentWhatsappController->sentWhatsappKodeBookingTicket($idKomplement,$idKaryawan);
+                }
             }
-           
             $result=response()->json([
                 'status' => 'success',
                 'message' => 'Update Reservation Ticket Successfuly',

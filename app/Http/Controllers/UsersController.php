@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\Users;
 
 class UsersController extends Controller
 {
@@ -136,6 +138,7 @@ class UsersController extends Controller
             $data->sub_departemen = $subDepartemen_; 
             $data->id_grade = $idGrade_;
             $data->grade = $grade_; 
+            $data->type_approve = '-'; 
             $data->name = $name_; 
             $data->no_telephone = $noTelephone_;
             $data->id_karyawan = $idKaryawan_; 
@@ -224,15 +227,44 @@ class UsersController extends Controller
         $typeApprove = $typeApprove_;
         try
         {
-            DB::table('users')
-            ->where('id_karyawan','=',$idKaryawan)
-            ->update([
-                'approve'=> $approve,
-                'type_approve'=>$typeApprove
-            ]);
+            if($approve!='' && $typeApprove!='')
+            {
+                DB::table('users')
+                ->where('id_karyawan','=',$idKaryawan)
+                ->update([
+                    'approve'=> $approve,
+                    'type_approve'=>$typeApprove
+                ]);
+            }
+            if($approve=='')
+            {
+                DB::table('users')
+                ->where('id_karyawan','=',$idKaryawan)
+                ->update([
+                    'type_approve'=>$typeApprove
+                ]);
+            }
+            if($typeApprove=='')
+            {
+                DB::table('users')
+                ->where('id_karyawan','=',$idKaryawan)
+                ->update([
+                    'approve'=> $approve,
+                ]);
+            }
+
             return 'update akes approve users success';
         } catch (\Exception $ex) {
             return $ex;
         }
+    }
+
+    public function exportUsers($request){
+
+        $param = array(
+            'id_departemen' => $request->id_departemen,
+            'id_sub_departemen' => $request->id_sub_departemen
+        );
+        return Excel::download(new Users($param), 'Data-Users-Lokaryawan.xlsx');
     }
 }

@@ -31,4 +31,16 @@ class ClassUploadImageClass extends Controller
         $image->save(public_path('storage' . DIRECTORY_SEPARATOR . $path));
         return  $path;
     }
+
+    public function processImageLampiranIzin(UploadedFile $image,$idIzin)
+    {
+        $imageName = 'IMG_'.$idIzin.'.' . $image->getClientOriginalExtension();
+        $image = Image::make($image)->resize(800, null, function ($constraint) {
+            $constraint->aspectRatio();
+        });
+        
+        $path = 'lampiran_izin' . '/' . $imageName;
+        $image->save(public_path('storage' . DIRECTORY_SEPARATOR . $path));
+        return  $path;
+    }
 }

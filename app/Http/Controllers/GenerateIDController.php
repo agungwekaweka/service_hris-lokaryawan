@@ -26,15 +26,15 @@ class GenerateIDController extends Controller
         return $id;
     }
 
-    public function getIDCutiTrn($idCuti)
+    public function getIDCutiTrn($idCuti,$idKaryawan)
     {
         $id='-';
-        $prefix = $idCuti.'-'.date('ymd');
-    
-        $prefixSubs = substr($prefix,0,8);
+        $tahun = date('y');
+        $prefix =  $idKaryawan.'-'.$idCuti;
+        $prefixSubs = substr($prefix,0,10);
+ 
         $count = DB::table('cuti_trn')
         ->select(DB::raw('COUNT(ID) as count'))
-        ->where('id_cuti',$idCuti)
         ->where('id_cuti_trn','like','%'.$prefixSubs.'%')
         ->first();
 
@@ -88,15 +88,31 @@ class GenerateIDController extends Controller
         return $id;
     }
 
-    public function getIDOvertimeMst()
+     public function getIDOvertimeMst($idKaryawan)
     {
         $id='-';
-        $prefix = 'OT'.'-'.date('ymd');
-        $prefixSubs = substr($prefix,0,5);
+        $prefix = 'OV'.'-'.$idKaryawan;
+        $prefixSubs = substr($prefix,0,8);
       
         $count = DB::table('overtime')
         ->select(DB::raw('COUNT(ID) as count'))
         ->where('id_overtime','like','%'.$prefixSubs.'%')
+        ->first();
+        
+        $formattedNumber = str_pad($count->count, 6, '0', STR_PAD_LEFT);
+        $id = $prefix.'-'.$formattedNumber;
+        return $id;
+    }
+
+    public function getIDRequestOvertimeMst($idKaryawan)
+    {
+        $id='-';
+        $prefix = 'OT'.'-'.$idKaryawan;
+        $prefixSubs = substr($prefix,0,8);
+      
+        $count = DB::table('overtime')
+        ->select(DB::raw('COUNT(ID) as count'))
+        ->where('id_request_overtime','like','%'.$prefixSubs.'%')
         ->first();
         
         $formattedNumber = str_pad($count->count, 6, '0', STR_PAD_LEFT);
@@ -119,6 +135,91 @@ class GenerateIDController extends Controller
         
         $formattedNumber = str_pad($count->count, 2, '0', STR_PAD_LEFT);
         $id = $prefix.'-'.$formattedNumber;
+        return $id;
+    }
+    
+    // ----Guest
+    public function getIDGuest()
+    {
+        $id='-';
+        $prefix = 'ID-'.date('ymd');
+
+        $count = DB::table('guest_users')
+        ->select(DB::raw('COUNT(ID) as count'))
+        ->where('id_users','like','%'.$prefix.'%')
+        ->first();
+        
+        $formattedNumber = str_pad($count->count, 4, '0', STR_PAD_LEFT);
+        $id = $prefix.'-'.$formattedNumber;
+        return $id;
+    }
+
+    public function getIDKomplemenGuestMst()
+    {
+        $id='-';
+        $prefix = date('ymd');
+
+        $count = DB::table('guest_komplement_mst')
+        ->select(DB::raw('COUNT(ID) as count'))
+        ->where('id_komplement_mst','like','%'.$prefix.'%')
+        ->first();
+        $formattedNumber = str_pad($count->count, 6, '0', STR_PAD_LEFT);
+        $id = '99-'.$prefix.'-'.$formattedNumber;
+        return $id;
+    }
+
+    public function getIDKomplemenTrnGuest()
+    {
+        $id='-';
+        $randomNumber = rand(1000, 9999);
+        $prefix = 'GU'.$randomNumber .'-'.date('ymd');
+     
+        $prefixSubs = substr($prefix,0,9);
+        $count = DB::table('komplement_trn')
+        ->select(DB::raw('COUNT(ID) as count'))
+        ->where('id_komplemen_trn','like','%'.$prefixSubs.'%')
+        ->first();
+
+        $formattedNumber = str_pad($count->count, 6, '0', STR_PAD_LEFT);
+        $id = $prefix.'-'.$formattedNumber;
+        return $id;
+    }
+
+    public function getIDIzin($request)
+    {
+        $tipeIzin = $request['tipe_izin'];
+        $idKaryawan = $request['id_karyawan'];
+
+        $id='-';
+        $prefix = $idKaryawan.'-'.$tipeIzin.'-'.date('y');
+        $prefixSubs = substr($prefix,0,9);
+
+        $count = DB::table('izin_mst')
+        ->select(DB::raw('COUNT(ID) as count'))
+        ->where('type',$tipeIzin)
+        ->where('id_izin','like','%'.$prefixSubs.'%')
+        ->first();
+        $formattedNumber = str_pad($count->count, 6, '0', STR_PAD_LEFT);
+      
+        $id = $prefix.'-'.$formattedNumber;
+        return $id;
+    }
+
+    public function getIDSppd($request)
+    {
+        $idKaryawan = $request['id_karyawan'];
+
+        $id='-';
+        $prefix = $idKaryawan.'-'.date('y');
+        $prefixSubs = substr($prefix,0,9);
+
+        $count = DB::table('sppd_mst')
+        ->select(DB::raw('COUNT(ID) as count'))
+        ->where('id_sppd','like','%'.$prefixSubs.'%')
+        ->first();
+        $formattedNumber = str_pad($count->count, 6, '0', STR_PAD_LEFT);
+      
+        $id = 'SPD'.'-'.$prefix.'-'.$formattedNumber;
         return $id;
     }
 

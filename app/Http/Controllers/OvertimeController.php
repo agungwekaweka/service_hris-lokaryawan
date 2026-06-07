@@ -16,22 +16,30 @@ class OvertimeController extends Controller
     public function insertOvertimeMst($request)
     {
         // declare variable
+        if (isset($request['id_request_overtime'])) {
+            $idRequestOvertime = $request['id_request_overtime'];
+        }
+        $nip = '-';
+        $totalJam = 0;
         $idOvertime = $request['id_overtime'];
         $idKaryawan = $request['id_karyawan'];
-        $nip = '-';
         $tglPengajuan = $request['tgl_pengajuan'];
         $tglLembur = $request['tgl_lembur'];
         $jamLembur = $request['jam_lembur'];
         $jamMulai = $request['jam_mulai'];
         $jamAkhir = $request['jam_akhir'];
-        $totalJam = 0;
         $keterangan = $request['keterangan'];
+        $pic = $request['pic'];
+        
         try {
             // cek data
             $dt = DB::table('overtime')
             ->select('id_karyawan')
             ->where('id_karyawan',$idKaryawan)
-            ->where('tgl_lembur',$tglLembur);
+            ->where('tgl_lembur',$tglLembur)
+            ->where('jam_awal',$jamMulai)
+            ->where('jam_akhir',$jamAkhir)
+            ->where('status','<>','2');
             if($dt->exists())
             {
                 // data sudah ada
@@ -40,6 +48,8 @@ class OvertimeController extends Controller
             else
             {
                     $data = new Overtime();
+                    $data->id_request_overtime = $idRequestOvertime;
+                    $data->pic = $pic;
                     $data->id_overtime = $idOvertime;
                     $data->id_karyawan = $idKaryawan;
                     $data->nip = $nip; 
@@ -90,46 +100,172 @@ class OvertimeController extends Controller
 
      // GET
      // mengambil data request Overtime
-     public function getOvertimeRequest($idOvertime_,$idKaryawan_)
+      public function getOvertimeRequest($request)
      { 
-         try
-         {
-         $data_ = DB::table('overtime')
-         ->select('overtime.id_overtime',
-         'users.name',
-         'users.nik',
-         'users.no_telephone',
-         'overtime.id_karyawan',
-         'overtime.nip',
-         'overtime.tgl_pengajuan',
-         'overtime.tgl_lembur',
-         'overtime.jam_lembur',
-         'overtime.total_jam',
-         'overtime.status',
-         'overtime.keterangan')
-         ->join('users','users.id_karyawan','overtime.id_karyawan');
-         if($data_->exists())
-         {
-            if($idOvertime_!='')
-            {
-                $data_->where('overtime.id_overtime',$idOvertime_);
+        $idDepartemen = ''; $idSubDepartemen = ''; $idOvertime = ''; $idKaryawan = ''; $status = ''; $tanggalAwal = ''; $tanggalAkhir = ''; $idRequestOvertime = ''; $pic = '';
+
+        if (isset($request['id_departemen']) && $request['id_departemen']!='' ) {$idDepartemen = $request['id_departemen'];}
+        if (isset($request['id_sub_departemen']) && $request['id_sub_departemen']!='' ) {$idSubDepartemen = $request['id_sub_departemen'];}
+        if (isset($request['id_overtime']) && $request['id_overtime']!='' ) {$idOvertime = $request['id_overtime'];}
+        if (isset($request['id_karyawan']) && $request['id_karyawan']!='' ) {$idKaryawan = $request['id_karyawan'];}
+        if (isset($request['status']) && $request['status']!='' ) {$status = $request['status'];}
+        if (isset($request['tanggal_awal']) && $request['tanggal_awal']!='' ) {$tanggalAwal = $request['tanggal_awal'];}
+        if (isset($request['tanggal_akhir']) && $request['tanggal_akhir']!='' ) {$tanggalAkhir = $request['tanggal_akhir'];}
+        if (isset($request['id_request_overtime']) && $request['id_request_overtime']!='' ) {$idRequestOvertime = $request['id_request_overtime'];}
+        if (isset($request['pic']) && $request['pic']!='' ) {$pic = $request['pic'];}
+
+        try
+        {
+            $data_ = DB::table('overtime')
+            ->select('overtime.id_overtime',
+            'users.departemen',
+            'users.sub_departemen',
+            'users.grade',
+            'users.name',
+            'users.nik',
+            'users.no_telephone',
+            'overtime.id_karyawan',
+            'overtime.nip',
+            'overtime.tgl_pengajuan',
+            'overtime.tgl_lembur',
+            'overtime.jam_lembur',
+            'overtime.jam_awal',
+            'overtime.jam_akhir',
+            'overtime.jam_jadwal_masuk',
+            'overtime.jam_jadwal_pulang',
+            'overtime.jam_absen_masuk',
+            'overtime.jam_absen_pulang',
+            'overtime.jam_absen_jsonObject',
+            'overtime.jam_lembur',
+            'overtime.total_jam',
+            'overtime.status',
+            'overtime.keterangan')
+            ->join('users','users.id_karyawan','overtime.id_karyawan');
+            if($data_->exists())
+            { 
+                if($idDepartemen!='')
+                {
+                    $data_->where('users.id_departemen',$idDepartemen);
+                }
+                if($idSubDepartemen!='')
+                {
+                    $data_->where('users.id_sub_departemen',$idSubDepartemen);
+                }
+                if($idOvertime!='')
+                {
+                    $data_->where('overtime.id_overtime',$idOvertime);
+                }
+                if($idKaryawan!='')
+                {
+                    $data_->where('overtime.id_karyawan',$idKaryawan);
+                }
+                if($status!='')
+                {
+                    $data_->where('overtime.status',$status);
+                }
+                if($tanggalAwal!='')
+                {
+                    $data_->whereBetween('overtime.tgl_lembur', array($tanggalAwal." 00:00:00", $tanggalAkhir." 23:59:59"));
+                }
+                if($idRequestOvertime!='')
+                {
+                    $data_->where('overtime.id_request_overtime',$idRequestOvertime);
+                }
+                if($pic!='')
+                {
+                    $data_->where('overtime.pic',$pic);
+                }
+                $data_->orderBy('overtime.tgl_lembur','asc');
+                $data = $data_->get();
             }
-            if($idKaryawan_!='')
+            else
             {
-                $data_->where('overtime.id_karyawan',$idKaryawan_);
+                $data=null;
             }
-             $data = $data_->get();
-         }
-         else
-         {
-             $data=null;
-         }
-         return $data;
+            return $data;
          }
          catch (\Exception $ex) {
              return $ex;
          }
      }
+
+    //  mengambil request Overtime by PIC Group
+     public function getOvertimeRequestGroup($request)
+     { 
+        $idRequestOvertime = '';
+        $pic = '';
+
+        if (isset($request['id_request_overtime'])) {
+            $idRequestOvertime = $request['id_request_overtime'];
+        }
+        if (isset($request['pic'])) {
+            $pic = $request['pic'];
+        }
+
+        try
+        {
+            $data_ = DB::table('overtime')
+            ->select('overtime.id_request_overtime',
+            'overtime.tgl_lembur',
+            'overtime.jam_awal',
+            'overtime.jam_akhir',
+            'overtime.jam_lembur',
+            'overtime.keterangan',
+            'overtime.pic');
+            if($data_->exists())
+            {
+                if($idRequestOvertime!='')
+                {
+                    $data_->where('overtime.id_request_overtime',$idRequestOvertime);
+                }
+                if($pic!='')
+                {
+                    $data_->where('overtime.pic',$pic);
+                }
+             
+                $data = $data_->get();
+            }
+            else
+            {
+                $data=null;
+            }
+            return $data;
+         }
+         catch (\Exception $ex) {
+             return $ex;
+         }
+     }
+     
+     //  mengambil request Overtime by ID
+      public function getOvertimeRequestGroupKaryawan($request)
+      { 
+         $idRequestOvertime = '';
+ 
+         if (isset($request['id_request_overtime'])) {
+             $idRequestOvertime = $request['id_request_overtime'];
+         }
+         try
+         {
+             $data_ = DB::table('overtime')
+             ->select('overtime.id_request_overtime',
+            'users.departemen','users.sub_departemen','users.grade',
+            'overtime.id_karyawan','users.name')
+            ->join('users','users.id_karyawan','overtime.id_karyawan')
+            ->where('overtime.id_request_overtime',$idRequestOvertime);
+             if($data_->exists())
+             {
+                 $data = $data_->get();
+             }
+             else
+             {
+                 $data=null;
+             }
+             return $data;
+          }
+          catch (\Exception $ex) {
+              return $ex;
+          }
+      }
     
      // mengambil data history approve
     public function getApproveHistory($typeHistory_,$idOvertime_)
@@ -149,16 +285,16 @@ class OvertimeController extends Controller
         ->orderBy('users.id_grade','desc');
         if($data_->exists())
         {
-                if($typeHistory!='')
-                {
-                    $data_->where('status',$typeHistory);
-                }
-                if($data_->count()==0)
-                {
-                    $data=null;
-                    return $data;
-                }
-                $data = $data_->get();
+            if($typeHistory!='')
+            {
+                $data_->where('overtime_history.status',$typeHistory);
+            }
+            if($data_->count()==0)
+            {
+                $data=null;
+                return $data;
+            }
+            $data = $data_->get();
         }
         else
         {
@@ -172,7 +308,11 @@ class OvertimeController extends Controller
         $idOvertime = $request->id_overtime;
         try
         {
-            $data = $this->getOvertimeRequest($idOvertime,'');
+            $request=[];
+            $request['id_overtime'] = $idOvertime;
+            $request['id_karyawan'] = '';
+
+            $data = $this->getOvertimeRequest($request);
             $dataHistory = $this->getApproveHistory('',$idOvertime);
           
             if($data !=null)
@@ -199,11 +339,9 @@ class OvertimeController extends Controller
 
     public function getRequestOvertime(Request $request)
     {
-        $idKaryawan = $request->id_karyawan;
-
         try
         {
-            $data = $this->getOvertimeRequest('',$idKaryawan);
+            $data = $this->getOvertimeRequest($request);
             if($data !=null)
             {
                 $result=response()->json([
@@ -233,65 +371,63 @@ class OvertimeController extends Controller
          $roleApprove = $roleApprove_;
          try
          {            
-             // data user login
-             $c_users = new UsersController();
-             $dtUsers = $c_users->getData($idKaryawan);
-          
-             $idDepartemen = $dtUsers->id_departemen;
-             $idSubDepartemen = $dtUsers->id_sub_departemen;
-             $idGrade = $dtUsers->id_grade;
-             $grade = $dtUsers->grade;
- 
-             $approveLvUp = $dtUsers->approve_level_up;
-             $approveLvDown = $dtUsers->approve_level_down;
- 
-             $c_gradeController = new GradeController();
-             $dtGradeAsc = $c_gradeController->getTypeMasterGrade('asc');
-             $dtGradeDsc = $c_gradeController->getTypeMasterGrade('desc');
- 
-             $gradeDown = $c_gradeController->getLevelGrade($dtGradeAsc,$idGrade,$approveLvDown);
-             // $gradeUp = $c_gradeController->getLevelGrade($dtGradeDsc,$idGrade,$approveLvUp);
-       
-             // return array
-             $lstDtUsers = $c_gradeController->getKaryawanApproveByGrade($typeApprove,$roleApprove,$gradeDown,$idDepartemen,$idSubDepartemen);
-           
-             $data_ = DB::table('overtime')
-             ->select(
-             'overtime.id',
-             'overtime.id_overtime')
-             ->where('overtime.status','0')
-             ->whereIn('overtime.id_karyawan',$lstDtUsers)
-             ->orderBy('overtime.tgl_pengajuan','asc');
+            $data_ = DB::table('overtime_history')
+            ->select('id','id_overtime','id_karyawan_approve')
+            ->where('status','0')
+            ->where('id_karyawan_approve',$idKaryawan);
+    
              if($data_->exists())
              {
                  $result = $data_->get();
-     
                  $lstIDTrnOutstanding=null;
                  $countLstOutstanding=0;
+              
                  foreach($result as $x)
                  {
-                     $idOvertime = $x->id_overtime;
+                    $idOvertime = $x->id_overtime;
+
+                    //  cek apakah first
+                    $_firstData = DB::table('overtime_history')
+                    ->select('id','id_overtime','status','id_karyawan_approve')
+                    ->where('id_overtime',$idOvertime)
+                    ->orderBy('id','asc')
+                    ->get();
                  
-                     // cek apakah masih ada history approve yg belum di setujui
-                     //  0=pending, 1=approve, 2=reject
-                     $result_ = $this->getApproveHistory(0,$idOvertime);
-                  
-                     if($result_==null)
-                     {
-                     // selesai semua
-                         
-                     }
-                     else
-                     {
-                         // masih ada data yg pending
-                         if($result_[0]->id_karyawan_approve == $idKaryawan)
-                         {
-                             $lstIDTrnOutstanding[$countLstOutstanding] = $result_[0]->id_overtime;
-                             $countLstOutstanding++;
-                         }  
-                     }
-                 }
+                    $_idKaryawan1=$_firstData[0]->id_karyawan_approve;
                
+                    if($_firstData[0]->status=='0')
+                    {
+                        if($_idKaryawan1 == $idKaryawan)
+                        {
+                            if($_firstData[0]->status=='0')
+                            {
+                                $lstIDTrnOutstanding[$countLstOutstanding] = $_firstData[0]->id_overtime;
+                                $countLstOutstanding++;
+                            }
+                        }
+                    }
+                    
+                    if($_firstData->count()==2)
+                    {
+                        $_idKaryawan2=$_firstData[1]->id_karyawan_approve;
+                        if($_firstData[0]->status=='1')
+                        {
+                          
+                            if($_idKaryawan2 == $idKaryawan)
+                            {
+                              
+                                if($_firstData[1]->status=='0')
+                                {
+                                    
+                                    $lstIDTrnOutstanding[$countLstOutstanding] = $_firstData[1]->id_overtime;
+                                    $countLstOutstanding++;
+                                }
+                             
+                            }
+                        }
+                    }
+                 }
+              
                  // cek apakah ada data
                  if($lstIDTrnOutstanding!=null)
                  {
@@ -311,9 +447,16 @@ class OvertimeController extends Controller
                      ->join('users','users.id_karyawan','overtime.id_karyawan')
                      ->where('overtime.status','0')
                      ->whereIn('overtime.id_overtime',$lstIDTrnOutstanding)
-                     ->orderBy('overtime.tgl_pengajuan','asc')
-                     ->get();
-                     $result = $data_;
+                     ->orderBy('overtime.tgl_pengajuan','asc');
+                    if($data_->exists())
+                    {
+                        $result = $data_->get();
+                    
+                    }   
+                    else
+                    {
+                        $result = 'Data Tidak Ditemukan'; 
+                    }
                  }
                  else
                  {
@@ -332,13 +475,12 @@ class OvertimeController extends Controller
      }
     
     // UPDATE
-    public function updateActionOvertimeMst($idOvertime_,$status_,$note_,$jamLembur_)
+    public function updateActionOvertimeMst($request)
     {
-        // declare variable
-        $idOvertime = $idOvertime_;
-        $status = $status_;
-        $note = $note_;
-        $jamLembur = $jamLembur_;
+        $idOvertime = $request['id_overtime'];
+        $status = $request['status'];
+        $keterangan = $request['keterangan'];
+        $jamLembur = $request['jam_lembur'];
         try {
             // cek data
             $dt = DB::table('overtime')
@@ -347,15 +489,16 @@ class OvertimeController extends Controller
             if($dt->exists())
             {
                 $data = $dt->first();
-
+            
                 DB::table('overtime')
                 ->where('id_overtime','=',$idOvertime)
                 ->update([
                     'jam_lembur'=>$jamLembur,
-                    'keterangan'=>$note,
+                    'keterangan'=>$keterangan,
                     'status' => $status,
                 ]);
                 
+                // Reject
                 if($status=='2')
                 {
                     DB::table('overtime')
@@ -392,6 +535,124 @@ class OvertimeController extends Controller
             ]);
 
             return 'Update Approve History Overtime Successfuly';
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    public function getListKaryawanOvertime($request)
+    {
+        $isSubDepartemen = $request['is_sub_departemen'];
+        $idKaryawan = $request['id_karyawan'];
+        try
+        {
+            // data user
+            $c_users = new UsersController();
+            $dtUsers = $c_users->getData($idKaryawan);
+          
+            $typeApprove='-';
+            if($dtUsers !=null)
+            {
+                // manager
+                if($dtUsers->id_grade =='LV-002')
+                {
+                    $typeGrade='1';
+                    // get Role Overtime
+                    $dtRoleApprove = DB::table('role_approve')
+                    ->select('id_departemen','id_sub_departemen')
+                    ->where('pic',$idKaryawan)
+                    ->where('type_role','1')
+                    ->get();
+                 
+                    // loop access
+                    $countLstOutstanding=0;
+                    $lstIDDepartemen=null;
+                    $lstIDSubDepartemen=null;
+                    foreach($dtRoleApprove as $v)
+                    {
+                        $lstIDDepartemen[$countLstOutstanding] = $v->id_departemen;
+                        $lstIDSubDepartemen[$countLstOutstanding] = $v->id_sub_departemen;
+                        $countLstOutstanding++;
+                    }
+              
+                }
+    
+                // SPV
+                if($dtUsers->id_grade=='LV-004')
+                {
+                    $typeGrade = '2';
+                    $idDepartemen = $dtUsers->id_departemen;
+                    $idSubDepartemen = $dtUsers->id_sub_departemen;
+                    // $typeApprove = $dtUsers->type_approve;
+                }
+            }
+
+            $data_ = DB::table('users')
+                ->select(
+                'users.departemen',
+                'users.sub_departemen',
+                'users.grade',
+                'users.id_karyawan',
+                'users.name')
+                ->where('users.is_dell','1')
+                ->orderBy('sub_departemen','asc');
+                if($typeApprove=='-')
+                {
+                    if($typeGrade=='1')
+                    {
+                        // type approve manager
+                        $data_->whereIn('id_departemen',$lstIDDepartemen);
+                        if($isSubDepartemen=='true')
+                        {
+                            $data_->whereIn('id_sub_departemen',$lstIDSubDepartemen);
+                        }     
+                    }
+                    if($typeGrade=='2')
+                    {
+                        // type approve SPV
+                        $data_->where('id_departemen',$idDepartemen);
+                        if($isSubDepartemen=='true')
+                        {
+                            $data_->where('id_sub_departemen',$idSubDepartemen);
+                        } 
+                    }
+                }
+                else
+                {
+                    $data_->where('type_approve',$typeApprove);
+                }
+
+                if($data_->exists())
+                {
+                    $result = $data_->get();
+                }   
+                else
+                {
+                    $result = 'Data Tidak Ditemukan'; 
+                }
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
+    private function cekApprove($idKaryawan_)
+    {
+        $idKaryawan = $idKaryawan_;
+        try
+        {
+            $dt_ = DB::table('users')
+            ->select('approve','type_approve')
+            ->where('id_karyawan',$idKaryawan);
+            if($dt_->exists())
+            {
+                $dt = $dt_->first();
+            }
+            else
+            {
+                $dt = false;
+            }
+            return $dt;
         } catch (\Exception $ex) {
             return $ex;
         }

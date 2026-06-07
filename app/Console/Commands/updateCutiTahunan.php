@@ -32,7 +32,7 @@ class updateCutiTahunan extends Command
      * @var string
      */
 
-    protected $description = 'Menambahkan Data Master Cuti Tahunan untuk Karyawan yg sudah berhak mendapatkan';
+    protected $description = 'Menambahkan Data Master Cuti Tahunan From LOKAHR untuk Karyawan yg sudah berhak mendapatkan';
 
     /**
      * Execute the console command.

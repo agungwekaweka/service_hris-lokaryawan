@@ -391,16 +391,29 @@ class KomplementController extends Controller
     public function updateOrderIDBooking($idKomplementTrn,$idKaryawan,$orderID,$kodeBooking,$paymentLink,$status)
     {
         try {
-            DB::table('komplement_trn')
+            $data = DB::table('komplement_trn')
+            ->select('kode_booking')
             ->where('id_komplemen_trn',$idKomplementTrn)
             ->where('id_karyawan',$idKaryawan)
-            ->update([
-                'order_id'=> $orderID,
-                'kode_booking'=>$kodeBooking,
-                'payment_link'=>$paymentLink,
-                'status'=>$status
-            ]);
-        return 'Update Order ID Karyawan Successfuly';
+            ->first();
+            if($data->kode_booking=='-')
+            {
+                DB::table('komplement_trn')
+                ->where('id_komplemen_trn',$idKomplementTrn)
+                ->where('id_karyawan',$idKaryawan)
+                ->update([
+                    'order_id'=> $orderID,
+                    'kode_booking'=>$kodeBooking,
+                    'payment_link'=>$paymentLink,
+                    'status'=>$status
+                ]);
+                return 'Update Order ID Karyawan Successfuly';
+            }
+            else
+            {
+                return false;
+            }
+           
         } catch (\Exception $ex) {
             return $ex;
         }
@@ -409,34 +422,45 @@ class KomplementController extends Controller
     public function updateReservationTicket($orderID,$kodeBooking,$status)
     {
         try {
-            DB::table('komplement_trn')
+            $data = DB::table('komplement_trn')
+            ->select('kode_booking')
             ->where('order_id',$orderID)
-            ->update([
-                'kode_booking'=>$kodeBooking,
-                'status'=>$status
-            ]);
-            $result_['update_reservationTicet'] = 'Update Order ID Karyawan Successfuly';
-            if($status=='3')
+            ->fist();
+            if($data->kode_booking!='-')
             {
-                // get Data komplement TRN
-                $dataKomplementTrn = DB::table('komplement_trn')
-                ->select('id_komplemen_trn','id_karyawan')
+                $result_['update_reservationTicet'] = false;
+            }
+            else
+            {
+                DB::table('komplement_trn')
                 ->where('order_id',$orderID)
-                ->first();
-                $idKaryawan = $dataKomplementTrn->id_karyawan;
-                $idKomplementTrn = $dataKomplementTrn->id_komplemen_trn;
-             
-                // get Data Komplement Ticket Order
-                $dataKomplementTicketOrder = DB::table('komplement_ticket_order')
-                ->select('id_komplemen_mst','ticket_id')
-                ->where('id_komplemen_trn',$idKomplementTrn)
-                ->get();
-                $result_['disable_ticketOrder'] = $this->disableTicketOrder($idKomplementTrn);
-                foreach($dataKomplementTicketOrder as $v)
+                ->update([
+                    'kode_booking'=>$kodeBooking,
+                    'status'=>$status
+                ]);
+                $result_['update_reservationTicet'] = 'Update Order ID Karyawan Successfuly';
+                if($status=='3')
                 {
-                    $idKomplementMst = $v->id_komplemen_mst;
-                    $idKomplement = $v->ticket_id;
-                    $result_['update_master_komplement_karyawan'] = $this->updateMasterKomplementKaryawan($idKaryawan,$idKomplementMst,$idKomplementTrn,$idKomplement);
+                    // get Data komplement TRN
+                    $dataKomplementTrn = DB::table('komplement_trn')
+                    ->select('id_komplemen_trn','id_karyawan')
+                    ->where('order_id',$orderID)
+                    ->first();
+                    $idKaryawan = $dataKomplementTrn->id_karyawan;
+                    $idKomplementTrn = $dataKomplementTrn->id_komplemen_trn;
+                 
+                    // get Data Komplement Ticket Order
+                    $dataKomplementTicketOrder = DB::table('komplement_ticket_order')
+                    ->select('id_komplemen_mst','ticket_id')
+                    ->where('id_komplemen_trn',$idKomplementTrn)
+                    ->get();
+                    $result_['disable_ticketOrder'] = $this->disableTicketOrder($idKomplementTrn);
+                    foreach($dataKomplementTicketOrder as $v)
+                    {
+                        $idKomplementMst = $v->id_komplemen_mst;
+                        $idKomplement = $v->ticket_id;
+                        $result_['update_master_komplement_karyawan'] = $this->updateMasterKomplementKaryawan($idKaryawan,$idKomplementMst,$idKomplementTrn,$idKomplement);
+                    }
                 }
             }
         return $result_;

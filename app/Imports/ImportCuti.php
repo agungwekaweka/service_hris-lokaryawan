@@ -25,6 +25,7 @@ class ImportCuti implements ToModel,WithHeadingRow
             {
               
                 $idKaryawan = $row['id_karyawan'];
+           
                 $tahun = $row['tahun'];
                 $idCuti = $row['id_cuti'];
                 $tipeCuti = $row['tipe_cuti'];
@@ -38,11 +39,11 @@ class ImportCuti implements ToModel,WithHeadingRow
                 $tipeToleransiExpired = $row['tipe_toleransi_expired'];
                 $toleransiExpired = $row['toleransi_expired'];
                 $dateExpired = $row['date_expired'];
-               
+           
                 // generate ID
                 $c_generateID = new GenerateIDController();
                 $idMst = $c_generateID->getIdCutiMst($tipeCuti);
-
+             
                 $data = new CutiMst();
                 $data->id_cuti_mst = $idMst;
                 $data->id_cuti = $idCuti;
@@ -61,7 +62,7 @@ class ImportCuti implements ToModel,WithHeadingRow
                 $data->date_expired = $dateExpired;
                 $data->is_dell = '1';
                 $data->save();
-
+             
             } catch (\Exception $ex) {
                 return response()->json([$ex]);
             }

@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Client;
 use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\ImportUpdateRoleApprove;
 
 class Service_RoleApprove extends Controller
 {
@@ -207,5 +209,34 @@ class Service_RoleApprove extends Controller
             return $ex;
         }
     }
+
+    public function importUpdateRoleApprove(Request $request)
+     {
+        try
+        {
+	        // validasi
+            $this->validate($request, [
+                'file' => 'required|mimes:csv,xls,xlsx'
+            ]);
+     
+		    // menangkap file excel
+		    $file = $request->file('file');
+     
+		    // membuat nama file unik
+		    $nama_file = rand().$file->getClientOriginalName();
+
+		    // Excel::import(new karyawanImport, 'http://10.10.10.9:8099/storage/'.$nama_file);
+          
+            Excel::import(new ImportUpdateRoleApprove,$file);
+         
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Import Data Master Komplement Successfuly'
+            ]);
+            return $result;
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+     }
 
 }

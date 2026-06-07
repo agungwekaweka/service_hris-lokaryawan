@@ -29,7 +29,7 @@ class updateMasaBerlakuCuti extends Command
      *
      * @var string
      */
-    protected $description = 'Update Master Cuti Validity Period Expied, Cron Start At 00:05:00';
+    protected $description = 'Update Master Cuti Validity Period Expied and create new cuti tahunan where date end = true, Cron Start At 00:05:00';
 
     /**
      * Execute the console command.
@@ -43,7 +43,7 @@ class updateMasaBerlakuCuti extends Command
             $yesterday = Carbon::yesterday()->format('Y-m-d');
             $c_cutiController = new CutiController();
             $result['disable_cutiTrn'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied('date_expired',$yesterday);
-
+          
             // insert history
             $_requestValue['apps'] = 'Service_HRIS-Lokaryawan';
             $_requestValue['service'] = 'CRON JOB';
@@ -69,26 +69,46 @@ class updateMasaBerlakuCuti extends Command
             $result['karyawan_disable_validatePerioedExpied'] = $c_cutiController->disableCutiTrnValidatePeriodeExpied('date_end',$yesterday);
          
             $lstKaryawanStatusNonActive =json_decode($result['karyawan_disable_validatePerioedExpied']['data']);
-
+         
             if($lstKaryawanStatusNonActive !=null)
             {
                 foreach($lstKaryawanStatusNonActive as $x)
                 {
                     // fill data
                     $idKaryawan = $x->id_karyawan;
-    
+                    $jmlHari=0;
+
+                    // Tanggal pertama
+                    $doj = DB::table('users')
+                    ->select('doj')
+                    ->where('id_karyawan',$idKaryawan)
+                    ->first();
+                    $dateDoj = $doj->doj;
+                    $date1 = Carbon::parse($dateDoj);
+                    // Tanggal kedua
+                    $now = Carbon::now()->format('Y-m-d');
+                    $date2 = Carbon::parse($now);
+                    // Menghitung selisih dalam tahun antara kedua tanggal
+                    $diffInMonth = $date1->diffInMonths($date2);
+                   
                     foreach($lstMstCuti as $v)
                     {
                         $idCuti = $v->id_cuti;
                         $tipeCuti = $v->tipe_cuti;
                         $cuti = $v->cuti;
                         $jmlHari = $v->jml_hari;
+                       
+                        if($diffInMonth>=36)
+                        {
+                            $jmlHari = $jmlHari+2;
+                        }
+                        
                         $masaBerlaku = $v->masa_berlaku;
                         $tipeMasaBerlaku = $v->tipe_masa_berlaku;
                              
                         $c_generateID = new GenerateIDController();
                         $idMst = $c_generateID->getIdCutiMst($tipeCuti);
-                
+                  
                         $c_cuti = new CutiController();
                         $result_['insert_masterCutiDB'] = $c_cuti->insertCutiMst($idMst,$idCuti, $tahun,$idKaryawan,$tipeCuti,$cuti,$jmlHari,$tipeMasaBerlaku,$masaBerlaku,$tglBerlaku);
                     }

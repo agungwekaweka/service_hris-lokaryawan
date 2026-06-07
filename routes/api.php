@@ -15,6 +15,13 @@ use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\Service_RoleApprove;
 use App\Http\Controllers\Service_Cuti;
 use App\Http\Controllers\Service_Komplemen;
+use App\Http\Controllers\Service_Overtime;
+use App\Http\Controllers\Service_Users;
+use App\Http\Controllers\Service_KomplementGuest;
+use App\Http\Controllers\Service_Izin;
+use App\Http\Controllers\Serivce_Sppd;
+use App\Http\Controllers\SentWhatsappController;
+
 
 use Illuminate\Support\Facades\Session;
 
@@ -35,9 +42,12 @@ use Illuminate\Support\Facades\Session;
         // CUTI
         // add data master cuti & kompliment karyawan from lokaHR
         Route::get('insert_karyawan', 'insertKaryawan'); 
+        
         // request cuti karyawan
         Route::post('request_cuti', 'requestCuti'); 
         Route::post('request_cuti_khusus', 'requestCutiKhusus'); 
+        Route::post('update_request_cuti_khusus', 'updateRequestCutiKhusus'); 
+
         // get data sisa cuti karyawan
         Route::get('get_cuti', 'getCutiKaryawan'); 
         // update akses approve
@@ -63,6 +73,13 @@ use Illuminate\Support\Facades\Session;
         Route::post('update_action_cuti', 'actionRequestCuti'); 
         // update action overtime HOD
         Route::post('update_action_overtime', 'actionRequestOvertime'); 
+        // get list karyawan overtime 
+        Route::get('get_list_karyawan_overtime', 'getListKaryawanOvertime'); 
+        // request Overtime Karyawan from HOD
+        Route::post('request_list_overtime', 'requestListOvertime'); 
+        // get 
+        Route::get('get_request_overtime_grouping', 'getRequestOvertimeGrouping'); 
+        Route::get('get_request_overtime_grouping_karyawan', 'getRequestOvertimeGroupingKaryawan'); 
         // get notif aprovel 
         Route::get('get_notif_approve', 'getNotifApprove'); 
     });
@@ -135,6 +152,60 @@ Route::controller(Service_RoleApprove::class)->group(function () {
     Route::post('create_role_approve_all','createRoleApproveAll');
     
     Route::post('update_pic_approve','updatePicApprove');
+
+    // import update Role Approve By Departemen / sub
+    Route::post('import_update_role_approve', 'importUpdateRoleApprove');
+});
+
+Route::controller(Service_Overtime::class)->group(function () {
+    Route::get('get_request_overtime_karyawan','getRequestOvertime');
+    
+     // export
+    Route::get('export_request_overtime_karyawan', 'exportRequestOvertime');
+});
+
+
+Route::controller(Service_Users::class)->group(function () {
+  Route::get('export_users', 'exportUsers');
+});
+
+Route::controller(Service_KomplementGuest::class)->group(function () {
+    // get Users Guest
+    Route::get('get_users_guest', 'getUsersGuest');
+    Route::post('update_users_guest', 'updateUsersGuest');
+
+    Route::post('import_users_guest', 'importUsersGuest');
+    
+    // request komplement users guest 
+    Route::post('request_komplement_guest', 'requestKomplementUserGuest');
+
+    // get Komplement Guest
+    Route::get('get_komplement_guest', 'getKomplementUserGuest');
+});
+
+Route::controller(Service_Izin::class)->group(function () {
+    // get Izin
+    Route::get('get_izin', 'getIzin');
+
+    // get total izin 
+    Route::get('get_count_permission', 'getCountPermission');
+
+    // created izin
+    Route::post('created_izin','createdIzin');
+
+    // updated izin
+    Route::post('updated_izin','updatedIzin');
+});
+
+Route::controller(Serivce_Sppd::class)->group(function () {
+    // get Sppd
+    Route::get('get_sppd', 'getSppd');
+
+    // created Sppd
+    Route::post('created_sppd','createdSppd');
+
+    // updated Sppd
+    Route::post('updated_sppd','updatedSppd');
 });
 
 // CronJob
@@ -142,6 +213,10 @@ Route::controller(Service_RoleApprove::class)->group(function () {
 Route::controller(CutiController::class)->group(function () {
     // get data master cuti
     Route::get('cron_updateMasaBerlakuCuti', 'disableCutiTrnValidatePeriodeExpied'); 
+});
+
+Route::controller(SentWhatsappController::class)->group(function () {
+    Route::post('blast_all_karyawan', 'sentBlastWAAllKaryawan');
 });
 
 

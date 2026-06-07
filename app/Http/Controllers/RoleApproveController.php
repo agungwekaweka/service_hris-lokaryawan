@@ -22,22 +22,22 @@ class RoleApproveController extends Controller
 
         try {
             // cek data
-            $dt = DB::table('role_approve')
-            ->select('id')
-            ->where('id_departemen',$idDepartemen)
-            ->where('id_sub_departemen',$idSubDepartemen)
-            ->where('id_grade',$idGrade)
-            ->where('pic',$pic)
-            ->where('type_role',$typeRole);
-            if($dt->exists())
-            {
-                $req = 'Data sudah ada, mohon cek kembali';
-            }
-            else
-            {
+            // $dt = DB::table('role_approve')
+            // ->select('id')
+            // ->where('id_departemen',$idDepartemen)
+            // ->where('id_sub_departemen',$idSubDepartemen)
+            // ->where('id_grade',$idGrade)
+            // ->where('pic',$pic)
+            // ->where('type_role',$typeRole);
+            // if($dt->exists())
+            // {
+            //     $req = 'Data sudah ada, mohon cek kembali';
+            // }
+            // else
+            // {
                 // data belum ada
                 $req = $this->insert($request);
-            }
+            // }
 
             return $req;
         } catch (\Exception $ex) {
@@ -129,7 +129,7 @@ class RoleApproveController extends Controller
         try
         {
             // update by Departemen
-            if($idDepartemen!='')
+            if($idDepartemen!='' && $idSubDepartemen=='')
             {   
                 DB::table('role_approve')
                 ->where('id_departemen','=',$idDepartemen)

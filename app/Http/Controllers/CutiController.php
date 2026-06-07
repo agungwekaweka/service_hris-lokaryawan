@@ -149,6 +149,7 @@ class CutiController extends Controller
                ->where('tahun',$tahun)
                ->where('id_cuti',$idCuti)
                ->where('tanggal',$tanggal)
+               ->where('status','<>','2')
                ->where('tipe_cuti','CT');
                if($dt->exists())
                {
@@ -310,7 +311,7 @@ class CutiController extends Controller
             $jmlCutiMst_ = DB::table('cuti_mst')
             ->select('jml_cuti')
             ->where('is_dell','1')
-            ->where('sisa_cuti','<>',0)
+            // ->where('sisa_cuti','<>',0)
             ->where('id_cuti',$idCuti)
             ->where('id_cuti_mst',$idMst)
             ->where('id_karyawan',$idKaryawan)
@@ -328,10 +329,10 @@ class CutiController extends Controller
 
             $jmlCutiTrn=$jmlCutiTrn_->total;
             $sisaCuti = $jmlCutiMst - $jmlCutiTrn;
-            
+          
             DB::table('cuti_mst')
             ->where('is_dell','1')
-            ->where('sisa_cuti','<>',0)
+            // ->where('sisa_cuti','<>',0)
             ->where('id_cuti','=',$idCuti)
             ->where('id_cuti_mst','=',$idMst)
             ->where('id_karyawan','=',$idKaryawan)
@@ -387,6 +388,7 @@ class CutiController extends Controller
     // mendisable cuti trn yg masa berlakunya sudah jatuh tempo
     public function disableCutiTrnValidatePeriodeExpied($tipeExpired,$tanggal)
     {
+    
         try
         {
             $tipeExpired = $tipeExpired;
@@ -420,7 +422,7 @@ class CutiController extends Controller
                 }
                
                 $dataExpied = $dataExpied_->get();
-
+        
                 $result_['callback'] ='disable Master Cuti validated period expied success';
                 $result_['data']=json_encode($dataExpied);
             }
@@ -593,12 +595,32 @@ class CutiController extends Controller
     }
     
     // mengambil data request cuti
-    public function getCutiRequest($idKaryawan_,$status_,$tipe_)
+    public function getCutiRequest($request)
     { 
+        $idDepartemen = ''; $idSubDepartemen = ''; $idCutiMst = ''; $idCutiTrn = ''; $idCuti = ''; $tahun = ''; $idKaryawan = ''; $type = ''; $tanggal = ''; $tanggalPengajuan = ''; $status='';
+        
+        if (isset($request['id_departemen']) && $request['id_departemen']!='' ) {$idDepartemen = $request['id_departemen'];}
+        if (isset($request['id_sub_departemen']) && $request['id_sub_departemen']!='' ) {$idSubDepartemen = $request['id_sub_departemen'];}
+        if (isset($request['id_cuti_mst']) && $request['id_cuti_mst']!='' ) {$idCutiMst = $request['id_cuti_mst'];}
+        if (isset($request['id_cuti_trn']) && $request['id_cuti_trn']!='' ) {$idCutiTrn = $request['id_cuti_trn'];}
+        if (isset($request['id_cuti']) && $request['id_cuti']!='' ) {$idCuti = $request['id_cuti'];}
+        if (isset($request['tahun']) && $request['tahun']!='' ) {$tahun = $request['tahun'];}
+        if (isset($request['id_karyawan']) && $request['id_karyawan']!='' ) {$idKaryawan = $request['id_karyawan'];}
+        if (isset($request['type']) && $request['type']!='' ) {$type = $request['type'];}
+        if (isset($request['tanggal']) && $request['tanggal']!='' ) {$tanggal = $request['tanggal'];}
+        if (isset($request['tanggal_pengajuan']) && $request['tanggal_pengajuan']!='' ) {$tanggalPengajuan = $request['tanggal_pengajuan'];}
+        if (isset($request['status']) && $request['status']!='' ) {$status = $request['status'];}
+
         try
         {
         $data_ = DB::table('cuti_trn')
-        ->select('cuti_trn.id_cuti_mst',
+        ->select(
+        'users.departemen',
+        'users.sub_departemen',
+        'users.grade',
+        'users.name',
+        'users.nik',
+        'cuti_trn.id_cuti_mst',
         'cuti_trn.id_cuti_trn',
         'cuti_trn.id_cuti',
         'cuti_trn.id_periode',
@@ -612,17 +634,52 @@ class CutiController extends Controller
         'cuti_trn.tgl_pengajuan',
         'cuti_trn.status',
         'cuti_trn.note')
-        ->where('cuti_trn.id_karyawan',$idKaryawan_);
+        ->join('users','users.id_karyawan','cuti_trn.id_karyawan');
         if($data_->exists())
         {
-            // cek apakah get by status);
-            if($status_!=null)
+            if($idDepartemen!='')
             {
-                $data_->where('cuti_trn.status',$status_);
+                $data_->where('users.id_departemen',$idDepartemen);
             }
-            if($tipe_!=null)
+            if($idSubDepartemen!='')
             {
-                $data_->where('cuti_trn.tipe_cuti',$tipe_);
+                $data_->where('users.id_sub_departemen',$idSubDepartemen);
+            }
+            if($idCutiMst!='')
+            {
+                $data_->where('cuti_trn.id_cuti_mst',$idCutiMst);
+            }
+            if($idCutiTrn!='')
+            {
+                $data_->where('cuti_trn.id_cuti_trn',$idCutiTrn);
+            }
+            if($idCuti!='')
+            {
+                $data_->where('cuti_trn.id_cuti',$idCuti);
+            }
+            if($tahun!='')
+            {
+                $data_->where('cuti_trn.tahun',$tahun);
+            }
+            if($idKaryawan!='')
+            {
+                $data_->where('cuti_trn.id_karyawan',$idKaryawan);
+            }
+            if($type!='')
+            {
+                $data_->where('cuti_trn.tipe_cuti',$type);
+            }
+            if($tanggal!='')
+            {
+                $data_->where('cuti_trn.tanggal',$tanggal);
+            }
+            if($tanggalPengajuan!='')
+            {
+                $data_->where('cuti_trn.tanggal_pengajuan',$tanggalPengajuan);
+            }
+            if($status!='')
+            {
+                $data_->where('cuti_trn.status',$status);
             }
             $data = $data_->get();
         }
@@ -646,7 +703,7 @@ class CutiController extends Controller
         try
         {
             $data_ = DB::table('cuti_mst')
-            ->select('id_cuti_mst','id_cuti','tahun','id_karyawan','tipe_cuti','cuti','sisa_cuti','date_start','date_end')
+            ->select('id_cuti_mst','id_cuti','tahun','id_karyawan','tipe_cuti','cuti','sisa_cuti','date_start','date_end','date_expired')
             ->where('is_dell','1')
             ->where('sisa_cuti','<>',0)
             ->where('id_karyawan',$idKaryawan)
@@ -674,35 +731,10 @@ class CutiController extends Controller
         $roleApprove = $roleApprove_;
         try
         {            
-            // data user login
-            $c_users = new UsersController();
-            $dtUsers = $c_users->getData($idKaryawan);
-           
-            $idDepartemen = $dtUsers->id_departemen;
-            $idSubDepartemen = $dtUsers->id_sub_departemen;
-            $idGrade = $dtUsers->id_grade;
-            $grade = $dtUsers->grade;
-          
-            $approveLvUp = $dtUsers->approve_level_up;
-            $approveLvDown = $dtUsers->approve_level_down;
-
-            $c_gradeController = new GradeController();
-            $dtGradeAsc = $c_gradeController->getTypeMasterGrade('asc');
-            $dtGradeDsc = $c_gradeController->getTypeMasterGrade('desc');
-
-            $gradeDown = $c_gradeController->getLevelGrade($dtGradeAsc,$idGrade,$approveLvDown);
-            // $gradeUp = $c_gradeController->getLevelGrade($dtGradeDsc,$idGrade,$approveLvUp);
-       
-            // return array
-            $lstDtUsers = $c_gradeController->getKaryawanApproveByGrade($typeApprove,$roleApprove,$gradeDown,$idDepartemen,$idSubDepartemen);
-           
-            $data_ = DB::table('cuti_trn')
-            ->select(
-            'cuti_trn.id',
-            'cuti_trn.id_cuti_trn')
-            ->where('cuti_trn.status','0')
-            ->whereIn('cuti_trn.id_karyawan',$lstDtUsers)
-            ->orderBy('cuti_trn.tgl_pengajuan','asc');
+            $data_ = DB::table('cuti_approve_history')
+            ->select('id','id_cuti_trn','id_karyawan_approve')
+            ->where('status','0')
+            ->where('id_karyawan_approve',$idKaryawan);
     
             if($data_->exists())
             {
@@ -712,29 +744,47 @@ class CutiController extends Controller
                 $countLstOutstanding=0;
                 
                 foreach($result as $x)
-                {
-                
+                 {
                     $idCutiTrn = $x->id_cuti_trn;
+                     
+                    //  cek apakah first
+                    $_firstData = DB::table('cuti_approve_history')
+                    ->select('id','id_cuti_trn','status','id_karyawan_approve')
+                    ->where('id_cuti_trn',$idCutiTrn)
+                    ->orderBy('id','asc')
+                    ->groupBy('id_karyawan_approve')
+                    ->get();
+           
+                    $_idKaryawan1=$_firstData[0]->id_karyawan_approve;
                     
-                    // cek apakah masih ada history approve yg belum di setujui
-                    //  0=pending, 1=approve, 2=reject
-                    $result_ = $this->getApproveHistory(0,$idCutiTrn);
-                 
-                    if($result_==null)
+                    if($_firstData[0]->status=='0')
                     {
-                    // selesai semua
-                        
-                    }
-                    else
-                    {
-                        // masih ada data yg pending
-                        if($result_[0]->id_karyawan_approve == $idKaryawan)
+                        if($_idKaryawan1 == $idKaryawan)
                         {
-                            $lstIDTrnOutstanding[$countLstOutstanding] = $result_[0]->id_cuti_trn;
-                            $countLstOutstanding++;
+                            if($_firstData[0]->status=='0')
+                            {
+                                $lstIDTrnOutstanding[$countLstOutstanding] = $_firstData[0]->id_cuti_trn;
+                                $countLstOutstanding++;
+                            }
                         }
                     }
-                }
+
+                    if($_firstData->count()>=2)
+                    {
+                        $_idKaryawan2=$_firstData[1]->id_karyawan_approve;
+                        if($_firstData[0]->status=='1')
+                        {   
+                            if($_idKaryawan2 == $idKaryawan)
+                            {
+                                if($_firstData[1]->status=='0')
+                                {
+                                    $lstIDTrnOutstanding[$countLstOutstanding] = $_firstData[1]->id_cuti_trn;
+                                    $countLstOutstanding++;
+                                }
+                            }
+                        }
+                    }
+                 }
               
                 // cek apakah ada data
                 if($lstIDTrnOutstanding!=null)
@@ -757,9 +807,16 @@ class CutiController extends Controller
                     ->join('users','users.id_karyawan','cuti_trn.id_karyawan')
                     ->where('cuti_trn.status','0')
                     ->whereIn('cuti_trn.id_cuti_trn',$lstIDTrnOutstanding)
-                    ->orderBy('cuti_trn.tgl_pengajuan','asc')
-                    ->get();
-                    $result = $data_;
+                    ->orderBy('cuti_trn.tgl_pengajuan','asc');
+                    if($data_->exists())
+                    {
+                        $result = $data_->get();
+                    
+                    }   
+                    else
+                    {
+                        $result = 'Data Tidak Ditemukan'; 
+                    }
                 }
                 else
                 {
@@ -843,13 +900,9 @@ class CutiController extends Controller
 
     public function getRequestCuti(Request $request)
     {
-        $idCutiTrn = $request->id_karyawan;
-        $status = $request->status;
-        $type = $request->type;
-
         try
         {
-            $data = $this->getCutiRequest($idCutiTrn,$status,$type);
+            $data = $this->getCutiRequest($request);
             if($data !=null)
             {
                 $result=response()->json([
@@ -870,5 +923,4 @@ class CutiController extends Controller
             return $ex;
         }
     }
-
 }

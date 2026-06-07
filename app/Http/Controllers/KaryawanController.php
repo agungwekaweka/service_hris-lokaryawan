@@ -18,7 +18,7 @@ class KaryawanController extends Controller
             $typeService = 'get_all_karyawan';
             $json_data = new API_Guzzle();
             $data_jsonDecode = $json_data->getServiceLokaHR($typeService);
-        
+           
             // cek status API
             if($data_jsonDecode->status=='success')
             {
@@ -96,8 +96,7 @@ class KaryawanController extends Controller
             $tglPengajuan = Carbon::now()->format('Y-m-d H:i:s');
             // status 0 = pending HOD, 1= approve, 2=reject
             $status = '0';
-          
-            // $tanggal = json_encode($tanggal_);
+            
             $note = '-';
            
             $sisaCuti =0;
@@ -116,9 +115,38 @@ class KaryawanController extends Controller
          
             if($sisaCutiDB >= $totalCuti)
             {  
+                // cek tanggal
+                $dtCutiTrn = DB::table('cuti_trn')
+                ->select('id')
+                ->where('id_karyawan',$idKaryawan)
+                ->where('tanggal',$tanggal)
+                ->where('status','0');
+                if($dtCutiTrn->exists())
+                {
+                    $result=response()->json([
+                        'status' => 'failed',
+                        'message' => 'Anda Sudah Pernah Mengajukan Cuti di Tanggal yang Sama',
+                    ]);
+                    return $result;
+                }
+
+                // cek role Approve
+                $c_grade = new GradeController();
+                $typeRole = '0'; // 0 digunakan untuk role Cuti
+                $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan,$typeRole);
+         
+                if($lstApproveGradeUp->count()==0)
+                {
+                    $result=response()->json([
+                        'status' => 'failed',
+                        'message' => 'Anda Tidak Mempunyai Role Approve, Silahkan Hubungi HR',
+                    ]);
+                    return $result;
+                }
+
                 // insert cuti
                 $c_generateID = new GenerateIDController();
-                $idTrn = $c_generateID->getIDCutiTrn($idCuti);
+                $idTrn = $c_generateID->getIDCutiTrn($idCuti,$idKaryawan);
 
                 $request['id_mst'] = $idMst;
                 $request['id_trn'] = $idTrn;
@@ -150,8 +178,40 @@ class KaryawanController extends Controller
             DB::commit();
             return $result;
         } catch (\Exception $ex) {
+         
             DB::roollBack();
             return $ex;
+        }
+    }
+
+    private function cekDoubleInputAndRoleApprove($request)
+    {
+        // cek tanggal
+        $dtCutiTrn = DB::table('cuti_trn')
+        ->select('id')
+        ->where('id_karyawan',$idKaryawan)
+        ->where('tanggal',$tanggal);
+        if($dtCutiTrn->exists())
+        {
+            $result=response()->json([
+                'status' => 'failed',
+                'message' => 'Anda Sudah Pernah Mengajukan Cuti di Tanggal yang Sama',
+            ]);
+            return $result;
+        }
+
+        // cek role Approve
+        $c_grade = new GradeController();
+        $typeRole = '0'; // 0 digunakan untuk role Cuti
+        $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan,$typeRole);
+ 
+        if($lstApproveGradeUp->count()==0)
+        {
+            $result=response()->json([
+                'status' => 'failed',
+                'message' => 'Anda Tidak Mempunyai Role Approve, Silahkan Hubungi HR',
+            ]);
+            return $result;
         }
     }
     
@@ -349,7 +409,7 @@ class KaryawanController extends Controller
         // cuti tahunan = 6, cuti khusus = 66
         $valueKehadiran = '66';
         $result_['update_lokaHR_jadwal_karyawan'] = $c_apiGuzzle->postServiceLokaHR($var,$nip,$tanggal,$keterangan,$valueKehadiran);
-            
+             
         // sent whatsapp message
         $c_sentWaController = new SentWhatsappController();
         $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCutiDiterima($idTrn,$telephone,$idKaryawan,$cuti,$tanggal,$keterangan);
@@ -430,6 +490,7 @@ class KaryawanController extends Controller
             $masaBerlaku = $dataCuti->masa_berlaku;
             $jmlHari = 0;
             $tipeMasaBerlaku = $dataCuti->tipe_masa_berlaku;
+            
 
             $tanggalDecode = json_decode($tanggal);
             // get tanggal first json Decode
@@ -457,7 +518,7 @@ class KaryawanController extends Controller
                 // insert cuti
                 // generate ID
                 $c_generateID = new GenerateIDController();
-                $idTrn = $c_generateID->getIDCutiTrn($idCuti);
+                $idTrn = $c_generateID->getIDCutiTrn($idCuti,$idKaryawan);
 
                 $request['id_mst'] = $idMst;
                 $request['id_trn'] = $idTrn;
@@ -474,6 +535,7 @@ class KaryawanController extends Controller
                 $request['status'] = $status;
                 $result_['insert_cutiTRN'] = $this->insertCutiTRN_khusus($request);
                 
+                $urlPathImgLampiran='-';
                 // insert Image
                 if($lampiranFile!='') {
                     // call class upload Image
@@ -483,6 +545,26 @@ class KaryawanController extends Controller
                     // insert 
                     $result_['insert_lampiran'] = $this->insertCutiLampiran($idMst,$idTrn,$tahun,$urlPathImgLampiran);
                 } 
+
+                // get list approve up Level
+                $c_grade = new GradeController();
+                $typeRole = '1'; // 0 digunakan untuk role Cuti
+                $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan,$typeRole);
+              
+                if($lstApproveGradeUp!=null)
+                {
+                    foreach($lstApproveGradeUp as $v)
+                    {
+                        $telephone = $v->no_telephone;
+                        // sent whatsapp message
+                        $c_sentWaController = new SentWhatsappController();
+                        $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveCutiKhusus($idTrn,$telephone,$idKaryawan,$cuti,$tanggal,$keterangan,$urlPathImgLampiran);
+                    }
+                }
+                else
+                {
+                    $result_['sent_whatsapp'] = 'ID Karyawan : '. $idKaryawan.' Tidak memiliki Atasan untuk Approve';
+                }
             }
             else
             {
@@ -494,6 +576,47 @@ class KaryawanController extends Controller
                 'message' => 'Request Cuti Karyawan Successfuly',
                 'callback' => $result_
             ]);
+            DB::commit();
+            return $result;
+        } catch (\Exception $ex) {
+            DB::rollBack();
+            return $ex;
+        }
+    } 
+
+    public function updateRequestCutiKhusus(Request $request)
+    {
+        $idCutiTrn = $request->id_cuti_trn;
+        $lampiranFile = $request->lampiran_file;
+
+        try
+        {
+            DB::beginTransaction();
+
+            // get data cuti from Cuti TRN
+            $cutiController = new CutiController();
+            $result_['get_dataCutiTRN'] = $cutiController->getCutiTrn($idCutiTrn);
+            $idKaryawan = $result_['get_dataCutiTRN']->id_karyawan;
+            $idMst = $result_['get_dataCutiTRN']->id_cuti_mst;
+            $idTrn = $result_['get_dataCutiTRN']->id_cuti_trn;
+            $tahun= $result_['get_dataCutiTRN']->tahun;
+
+            // insert Image
+            if($lampiranFile!='') {
+                // call class upload Image
+                $c_uploadImage = new ClassUploadImageClass();
+                $urlPathImgLampiran = $c_uploadImage->processImageLampiran($request->file('lampiran_file'),$idKaryawan,$idMst,$idTrn);
+                   
+                // insert 
+                $result_['insert_lampiran'] = $this->insertCutiLampiran($idMst,$idTrn,$tahun,$urlPathImgLampiran);
+            } 
+            
+            $result=response()->json([
+                'status' => 'success',
+                'message' => 'Request Cuti Karyawan Successfuly',
+                'callback' => $result_
+            ]);
+            
             DB::commit();
             return $result;
         } catch (\Exception $ex) {
@@ -579,9 +702,13 @@ class KaryawanController extends Controller
                         $paymentLink ='-';
                         // update orderIDBooking Ticket
                         $result_['update_orderID'] = $this->updateOrderIDBooking($idKomplemenTrn,$idKaryawan,$orderID,$kodeBooking,$paymentLink,$status);
-                        // sent wa komplement success
-                        $c_sentWaController = new SentWhatsappController();
-                        $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappKodeBookingTicket($idKomplemenTrn,$idKaryawan);
+                
+                        if($result_['update_orderID']!=false)
+                        {
+                            // sent wa komplement success
+                            $c_sentWaController = new SentWhatsappController();
+                            $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappKodeBookingTicket($idKomplemenTrn,$idKaryawan);
+                        }
                     }
                     elseif($paymentMethods=='2')
                     {
@@ -734,14 +861,44 @@ class KaryawanController extends Controller
         $keterangan = $request->keterangan;
 
         try {
-            // insert cuti
+            // cek tanggal
+            $dtCutiTrn = DB::table('overtime')
+            ->select('id')
+            ->where('id_karyawan',$idKaryawan)
+            ->where('tgl_lembur',$tglLembur)
+            ->where('jam_awal',$jamMulai)
+            ->where('jam_akhir',$jamAkhir)
+            ->where('status','0');
+            if($dtCutiTrn->exists())
+            {
+                $result=response()->json([
+                    'status' => 'failed',
+                    'message' => 'Anda Sudah Pernah Mengajukan Lembur di Tanggal dan Jam yang Sama',
+                ]);
+                return $result;
+            }
+
+            // cek role Approve
+            $c_grade = new GradeController();
+            $typeRole = '1'; // 0 digunakan untuk role Cuti
+            $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan,$typeRole);
+     
+            if($lstApproveGradeUp->count()==0)
+            {
+                $result=response()->json([
+                    'status' => 'failed',
+                    'message' => 'Anda Tidak Mempunyai Role Approve, Silahkan Hubungi HR',
+                ]);
+                return $result;
+            }
+
             $tahun = Carbon::now()->format('Y');
             $tglPengajuan = Carbon::now()->format('Y-m-d H:i:s');
             // 0=pending; 1=approve; 2=reject
             $status = '0';
 
             $c_generateID = new GenerateIDController();
-            $idOvertime = $c_generateID->getIDOvertimeMst();
+            $idOvertime = $c_generateID->getIDOvertimeMst($idKaryawan);
         
             // insert ke table master overtime
             $request=[];
@@ -753,6 +910,7 @@ class KaryawanController extends Controller
             $request['jam_mulai'] = $jamMulai;
             $request['jam_akhir'] = $jamAkhir;
             $request['keterangan'] = $keterangan;
+            
             $result_['insert_OvertimeMst'] = $this->insertOvertimeMst($request);
             
             $result=response()->json([
@@ -786,7 +944,7 @@ class KaryawanController extends Controller
         $c_grade = new GradeController();
         $typeRole = '1'; // 1 digunakan untuk role Lembur
         $lstApproveGradeUp = $c_grade->getGradeLvUp($idKaryawan,$typeRole);
-       
+  
         if($lstApproveGradeUp!=null)
         {
             $firstLoad = true;
@@ -800,9 +958,16 @@ class KaryawanController extends Controller
                 $note = '-';
                 if($firstLoad==true)
                 {
+                    $request = [];
+                    $request['id_overtime'] = $idOvertime;
+                    $request['telephone'] = $telephone;
+                    $request['id_karyawan'] = $idKaryawan;
+                    $request['tanggal_lembur'] = $tglLembur;
+                    $request['jam_lembur'] = $jamLembur;
+                    $request['keterangan'] = $keterangan;
                     // sent whatsapp message
                     $c_sentWaController = new SentWhatsappController();
-                    $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveOvertime($idOvertime,$telephone,$idKaryawan,$tglLembur,$jamLembur,$keterangan);
+                    $result_['sent_whatsapp'] = $c_sentWaController->sentWhatsappApproveOvertime($request);
                 }
                 $firstLoad=false;
 

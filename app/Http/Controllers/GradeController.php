@@ -131,7 +131,7 @@ class GradeController extends Controller
     // type role 1= role untuk lembur;
     public function getGradeLvUp($idKaryawan,$typeRole)
     {
-         // data user login
+         // data user
          $c_users = new UsersController();
          $dtUsers = $c_users->getData($idKaryawan);
       
@@ -152,9 +152,33 @@ class GradeController extends Controller
             $request['id_role_approve'] = $typeApprove;
             $request['grade_up'] = $gradeUp;
             $request['type_role'] = $typeRole;
-         
-            $x = $data = $this->cekApprove($request);
 
+            if($typeRole=='1')
+            {
+                if($typeApprove!='-')
+                {
+                    $request['id_role_approve'] = $typeApprove;
+                }
+                else
+                {
+                    $request['id_role_approve'] = '-';
+                }
+
+                // cek grade SPV
+                if($idGrade=='LV-004')
+                {
+                    // isSPV
+                    $request['grade_up'] = ["LV-002"];
+                }
+                else
+                {
+                    // isSPV kebawah
+                    $request['grade_up'] = ["LV-004","LV-002"];
+                }
+               
+            }
+
+            $x = $data = $this->cekApprove($request);
            return $x;
          }
          else
@@ -163,7 +187,7 @@ class GradeController extends Controller
          }
     }
 
-    private function cekApprove($request)
+    public function cekApprove($request)
     {
         $idDepartemen = $request['id_departemen'];
         $idSubDepartemen = $request['id_sub_departemen'];
@@ -173,28 +197,41 @@ class GradeController extends Controller
 
         $qry = DB::table('role_approve')
         ->select(
+            'role_approve.id_grade as id_grade',
+            DB::raw('(select level from grade where grade.id_grade=role_approve.id_grade limit 1) as level'),
             DB::raw('(select departemen from users where users.id_karyawan=role_approve.pic limit 1) as departemen'),
             DB::raw('(select sub_departemen from users where users.id_karyawan=role_approve.pic limit 1) as sub_departemen'),
             'role_approve.pic as id_karyawan',
-            'role_approve.id_grade as id_grade',
             DB::raw('(select grade from users where users.id_karyawan=role_approve.pic limit 1) as grade'),
             DB::raw('(select name from users where users.id_karyawan=role_approve.pic limit 1) as name'),
             DB::raw('(select no_telephone from users where users.id_karyawan=role_approve.pic limit 1) as no_telephone')
             );
-        if($idRoleApprove!='')
-        {
-            $qry->where('role_approve.id_role_approve',$idRoleApprove);
-        }
-        if($idDepartemen!='')
-        {
-            $qry->where('role_approve.id_departemen',$idDepartemen);
-        }
-        if($idSubDepartemen!='')
-        {
-            $qry->where('role_approve.id_sub_departemen',$idSubDepartemen);
-        }
-        $qry->where('role_approve.type_role',$typeRole);
-        $qry->whereIn('role_approve.id_grade',$gradeUp);
+            if($typeRole!='')
+            {
+                $qry->where('role_approve.type_role',$typeRole);
+            }
+            if($gradeUp!='')
+            {
+                $qry->whereIn('role_approve.id_grade',$gradeUp);
+            }
+            if($idRoleApprove!='-')
+            {
+                $qry->where('role_approve.id_role_approve',$idRoleApprove);
+            }
+            else
+            {
+                
+                if($idDepartemen!='')
+                {
+                    $qry->where('role_approve.id_departemen',$idDepartemen);
+                }
+                if($idSubDepartemen!='')
+                {
+                    $qry->where('role_approve.id_sub_departemen',$idSubDepartemen);
+                }
+
+            }
+       
         $qry->orderBy('role_approve.ord','desc'); 
         $qry_ = $qry->get();
         return $qry_;

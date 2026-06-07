@@ -25,11 +25,25 @@ class Kernel extends ConsoleKernel
         $schedule->command('update:komplement')
         ->dailyAt('00:02');
 
-        // $schedule->command('update:cutiTahunan')
-        // ->dailyAt('00:03');
+        $schedule->command('update:masaBerlakuKomplement')
+        ->dailyAt('23:00');
 
         $schedule->command('update:masaBerlakuCuti')
         ->dailyAt('00:04');
+
+        $schedule->command('reject:cutiExpied')
+        ->dailyAt('00:00');
+
+        $schedule->command('reject:overtimeExpied')
+        ->dailyAt('00:01');
+
+        $schedule->command('cron:requestCutiAutoUpload')
+        ->dailyAt('00:03');
+        
+        $schedule->command('notif:cutiTahunanLampiran')
+        ->dailyAt('00:05');
+
+       
     }
 
     /**
