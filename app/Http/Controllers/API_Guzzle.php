@@ -55,8 +55,8 @@ class API_Guzzle extends Controller
     public function urlTiketingLocal()
     {
         // server
-        // $url = 'https://servicereservasi.salokapark.app/api/';
-          $url = 'http://10.10.100.15:8151/api/';
+        $url = 'https://servicereservasi.salokapark.app/api/';
+        //   $url = 'http://10.10.100.15:8151/api/';
         // local 
         // $url = 'https://servicepg.salokapark.app/api/';
         return $url;

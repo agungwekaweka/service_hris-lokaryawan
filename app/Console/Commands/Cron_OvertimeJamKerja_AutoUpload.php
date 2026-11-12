@@ -41,7 +41,6 @@ class Cron_OvertimeJamKerja_AutoUpload extends Command
         try
         {
             $now = Carbon::now()->format('d');
-          
             if($now=='01')
             {
                 $yesterday = Carbon::yesterday()->format('Y-m');
@@ -53,7 +52,7 @@ class Cron_OvertimeJamKerja_AutoUpload extends Command
                 ->where('overtime.tgl_pengajuan','like','%'.$yesterday.'%')
                 ->where('overtime.jam_jadwal_masuk',null)
                 ->limit(50);
-              
+                
                 if($dtOvertime_->exists()) // ada data
                 {
                     $dtOvertime = $dtOvertime_->get();
