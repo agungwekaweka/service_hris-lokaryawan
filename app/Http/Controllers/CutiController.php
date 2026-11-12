@@ -694,6 +694,26 @@ class CutiController extends Controller
         }
     }
 
+    // Mengambil saldo cuti yang masih berlaku. Tanggal expired berlaku sampai akhir hari tersebut.
+    public function getCutiKaryawanValid($idKaryawan_, $idCuti_)
+    {
+        try {
+            return DB::table('cuti_mst')
+                ->select('id_cuti_mst','id_cuti','tahun','id_karyawan','tipe_cuti','cuti','sisa_cuti','date_start','date_end','date_expired')
+                ->where('is_dell','1')
+                ->where('sisa_cuti','>',0)
+                ->where('id_karyawan',$idKaryawan_)
+                ->where('id_cuti',$idCuti_)
+                ->whereDate('date_expired','>=',Carbon::today()->toDateString())
+                ->orderBy('date_expired','desc')
+                ->orderBy('date_start','desc')
+                ->orderBy('id','desc')
+                ->get();
+        } catch (\Exception $ex) {
+            return $ex;
+        }
+    }
+
     // megambil data sisa cuti karyawan
     public function getCutiKaryawan($idKaryawan_, $tahun_,$idCuti_)
     {

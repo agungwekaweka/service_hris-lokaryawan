@@ -99,10 +99,12 @@ class KaryawanController extends Controller
             
             $note = '-';
            
-            $sisaCuti =0;
+            $sisaCuti = 0;
+            $sisaCutiDB = 0;
+            $idMst = null;
             // cek sisa cuti in Master
             $c_cuti = new CutiController();
-            $dt = $c_cuti->getCutiKaryawan($idKaryawan, $tahun,$idCuti);
+            $dt = $c_cuti->getCutiKaryawanValid($idKaryawan, $idCuti);
           
             foreach($dt as $x)
             {
