@@ -705,9 +705,9 @@ class CutiController extends Controller
                 ->where('id_karyawan',$idKaryawan_)
                 ->where('id_cuti',$idCuti_)
                 ->whereDate('date_expired','>=',Carbon::today()->toDateString())
-                ->orderBy('date_expired','desc')
-                ->orderBy('date_start','desc')
-                ->orderBy('id','desc')
+                ->orderBy('date_expired','asc')
+                // ->orderBy('date_start','desc')
+                // ->orderBy('id','desc')
                 ->get();
         } catch (\Exception $ex) {
             return $ex;
